@@ -402,6 +402,13 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
             mask_images(int_images, rrhr_images, flag_images, input_dir,masked_dir)
 
 
+            # WEIGHT IMAGES
+            im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
+            imfiles = sorted(glob.glob(os.path.join(masked_dir, im_suff)))
+            wtfiles = sorted(glob.glob(os.path.join(masked_dir, wt_suff)))
+            weight_images(imfiles, wtfiles, weighted_dir, weights_dir)
+
+
             # MV INT AND RRHR MASKED IMAGES INTO THEIR OWN SUBDIRECTORIES
             im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
             imfiles = sorted(glob.glob(os.path.join(masked_dir, im_suff)))
@@ -415,28 +422,26 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
             # REPROJECT IMAGES
-            reproject_images(hdr_file, int_masked_dir, reprojected_dir, 'int')
-            reproject_images(hdr_file, rrhr_masked_dir, reprojected_dir,'rrhr')
-
-
-            # WEIGHT IMAGES
-            im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
-            imfiles = sorted(glob.glob(os.path.join(reprojected_dir, im_suff)))
-            wtfiles = sorted(glob.glob(os.path.join(reprojected_dir, wt_suff)))
-            weight_images(imfiles, wtfiles, weighted_dir, weights_dir)
+            int_reprojected_dir = os.path.join(reprojected_dir, 'int')
+            rrhr_reprojected_dir = os.path.join(reprojected_dir, 'rrhr')
+            os.makedirs(int_reprojected_dir)
+            os.makedirs(rrhr_reprojected_dir)
+            reproject_images(hdr_file, int_masked_dir, int_reprojected_dir, 'int')
+            reproject_images(hdr_file, rrhr_masked_dir, rrhr_reprojected_dir,'rrhr')
 
 
             # CREATE THE METADATA TABLES NEEDED FOR COADDITION
             #tables = create_tables(weights_dir, weighted_dir)
-            weight_table = create_table(weights_dir, dir_type='weights')
-            weighted_table = create_table(weighted_dir, dir_type='int')
-            count_table = create_table(weighted_dir, dir_type='count')
+            weight_table = create_table(rrhr_reprojected_dir, dir_type='weights')
+            weighted_table = create_table(int_reprojected_dir, dir_type='int')
+            count_table = create_table(int_reprojected_dir, dir_type='count')
 
 
             # COADD THE REPROJECTED, WEIGHTED IMAGES AND THE WEIGHT IMAGES
-            coadd(hdr_file, final_dir, weights_dir, output='weights')
-            coadd(hdr_file, final_dir, weighted_dir, output='int')
-            coadd(hdr_file, final_dir, weighted_dir, output='count', add_type='count')
+            coadd(hdr_file, final_dir, rrhr_reprojected_dir, output='weights')
+            coadd(hdr_file, final_dir, int_reprojected_dir, output='int')
+            coadd(hdr_file, final_dir, int_reprojected_dir, output='count', add_type='count')
+
 
             # DIVIDE OUT THE WEIGHTS
             imagefile = finish_weight(final_dir)
