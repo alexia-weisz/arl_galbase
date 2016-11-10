@@ -379,6 +379,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
                     if band.lower() == 'nuv':
                         im = counts2jy_galex(im, nuv_toab, pix_as)
                     if not os.path.exists(int_outfiles[i]):
+                        im -= np.mean(im)
                         pyfits.writeto(int_outfiles[i], im, hdr)
                     if not os.path.exists(wt_outfiles[i]):
                         pyfits.writeto(wt_outfiles[i], wt, whdr)
@@ -600,7 +601,7 @@ def coadd(template_header, output_dir, input_dir, output=None, add_type=None):
     else:
         reprojected_table = os.path.join(img_dir, output + '_reprojected.tbl')
         out_image = os.path.join(output_dir, output + '_mosaic.fits')
-    montage.mAdd(reprojected_table, template_header, out_image, img_dir=img_dir, exact=True, type=add_type, no_area=True)
+    montage.mAdd(reprojected_table, template_header, out_image, img_dir=img_dir, exact=True, type=add_type)
 
 
 def finish_weight(output_dir):
