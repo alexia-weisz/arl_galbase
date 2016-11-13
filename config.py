@@ -3,8 +3,10 @@ import os
 
 
 if os.getcwd().startswith('/Users/alexialewis/'):
-    _GALBASE_DIR = '/Users/alexialewis/research/galbase/'
-    _GALDATA_DIR = '/Users/alexialewis/research/galbase/galbase/gal_data/'
+    #_GALBASE_DIR = '/Users/alexialewis/research/galbase/'
+    #_GALDATA_DIR = '/Users/alexialewis/research/galbase/galbase/gal_data/'
+    _GALBASE_DIR = '/Users/alexialewis/python/akl_galbase/gal_data'
+    _GALDATA_DIR = _GALBASE_DIR
 else:
     _GALBASE_DIR = '/home/maury/leroy.42/idl/galbase/gal_data/'
     _GALDATA_DIR = _GALBASE_DIR

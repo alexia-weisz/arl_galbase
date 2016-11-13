@@ -129,24 +129,25 @@ def gal_data(name=None, data=None, all=False, data_dir=None, found=None, tag=Non
 
 
     # IDENTIFY THE GALAXY
-    n_names = len(name_in)
+    name = [name]
+    n_names = len(name)
     output = empty_gal_struct(n_names)
     found = np.ones(n_names)
 
-    name_in = [a.replace(' ', '').upper() for a in name_in]
-    name_vec = [a.replace(' ', '').upper() for a in name_vec]
-    alias_vec = [a.replace(' ', '').upper() for a in alias_vec]
-    data_name = [a.replace(' ', '').upper() for a in data.field('name')]
+    name = np.asarray([a.replace(' ', '').upper() for a in name])
+    name_vec = np.asarray([a.replace(' ', '').upper() for a in name_vec])
+    alias_vec = np.asarray([a.replace(' ', '').upper() for a in alias_vec])
+    data_name = np.asarray([a.replace(' ', '').upper() for a in data.field('name')])
 
     for i in range(n_names):
-        ind = np.where(alias_vec == name_in[i])
+        ind = np.where(alias_vec == name[i])[0]
 
         if len(ind) == 0:
-            print('No match for' + name_in[i])
+            print('No match for ' + name[i])
             found[i] = 0
             continue
 
-        data_ind = np.where(data_name == (name_vec[ind])[0])
+        data_ind = np.where(data_name == name_vec[ind][0])[0]
         output[i] = data[data_ind]
         found[i] = 1
 

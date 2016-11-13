@@ -402,13 +402,6 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
             mask_images(int_images, rrhr_images, flag_images, input_dir,masked_dir)
 
 
-            # WEIGHT IMAGES
-            im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
-            imfiles = sorted(glob.glob(os.path.join(masked_dir, im_suff)))
-            wtfiles = sorted(glob.glob(os.path.join(masked_dir, wt_suff)))
-            weight_images(imfiles, wtfiles, weighted_dir, weights_dir)
-
-
             # MV INT AND RRHR MASKED IMAGES INTO THEIR OWN SUBDIRECTORIES
             im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
             imfiles = sorted(glob.glob(os.path.join(masked_dir, im_suff)))
@@ -422,26 +415,28 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
             # REPROJECT IMAGES
-            int_reprojected_dir = os.path.join(reprojected_dir, 'int')
-            rrhr_reprojected_dir = os.path.join(reprojected_dir, 'rrhr')
-            os.makedirs(int_reprojected_dir)
-            os.makedirs(rrhr_reprojected_dir)
-            reproject_images(hdr_file, int_masked_dir, int_reprojected_dir, 'int')
-            reproject_images(hdr_file, rrhr_masked_dir, rrhr_reprojected_dir,'rrhr')
+            reproject_images(hdr_file, int_masked_dir, reprojected_dir, 'int')
+            reproject_images(hdr_file, rrhr_masked_dir, reprojected_dir,'rrhr')
+
+
+            # WEIGHT IMAGES
+            im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
+            imfiles = sorted(glob.glob(os.path.join(reprojected_dir, im_suff)))
+            wtfiles = sorted(glob.glob(os.path.join(reprojected_dir, wt_suff)))
+            weight_images(imfiles, wtfiles, weighted_dir, weights_dir)
 
 
             # CREATE THE METADATA TABLES NEEDED FOR COADDITION
             #tables = create_tables(weights_dir, weighted_dir)
-            weight_table = create_table(rrhr_reprojected_dir, dir_type='weights')
-            weighted_table = create_table(int_reprojected_dir, dir_type='int')
-            count_table = create_table(int_reprojected_dir, dir_type='count')
+            weight_table = create_table(weights_dir, dir_type='weights')
+            weighted_table = create_table(weighted_dir, dir_type='int')
+            count_table = create_table(weighted_dir, dir_type='count')
 
 
             # COADD THE REPROJECTED, WEIGHTED IMAGES AND THE WEIGHT IMAGES
-            coadd(hdr_file, final_dir, rrhr_reprojected_dir, output='weights')
-            coadd(hdr_file, final_dir, int_reprojected_dir, output='int')
-            coadd(hdr_file, final_dir, int_reprojected_dir, output='count', add_type='count')
-
+            coadd(hdr_file, final_dir, weights_dir, output='weights')
+            coadd(hdr_file, final_dir, weighted_dir, output='int')
+            coadd(hdr_file, final_dir, weighted_dir, output='count', add_type='count')
 
             # DIVIDE OUT THE WEIGHTS
             imagefile = finish_weight(final_dir)
@@ -465,11 +460,13 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
             shutil.copy(weight_file, new_weight_file)
             shutil.copy(count_file, new_count_file)
 
+
             # REMOVE GALAXY DIRECTORY AND EXTRA FILES
             shutil.rmtree(gal_dir, ignore_errors=True)
             stop_time = time.time()
 
             total_time = (stop_time - start_time) / 60.
+
 
             # WRITE OUT THE NUMBER OF TILES THAT OVERLAP THE GIVEN GALAXY
             out_arr = [name, len(infiles), np.around(total_time,2)]
@@ -577,15 +574,18 @@ def weight_images(imfiles, wtfiles, weighted_dir, weights_dir):
         newfile = os.path.join(weighted_dir, nf)
         pyfits.writeto(newfile, newim, hdr)
         old_area_file = imfiles[i].replace('.fits', '_area.fits')
-        new_area_file = newfile.replace('.fits', '_area.fits')
-        shutil.copy(old_area_file, new_area_file)
+        if os.path.exists(old_area_file):
+            new_area_file = newfile.replace('.fits', '_area.fits')
+            shutil.copy(old_area_file, new_area_file)
 
         nf = wtfiles[i].split('/')[-1].replace('.fits', '_weights.fits')
         weightfile = os.path.join(weights_dir, nf)
         pyfits.writeto(weightfile, wt, rrhrhdr)
         old_area_file = wtfiles[i].replace('.fits', '_area.fits')
-        new_area_file = weightfile.replace('.fits', '_area.fits')
-        shutil.copy(old_area_file, new_area_file)
+        if os.path.exists(old_area_file):
+            new_area_file = weightfile.replace('.fits', '_area.fits')
+            shutil.copy(old_area_file, new_area_file)
+
 
 
 def create_table(in_dir, dir_type=None):
