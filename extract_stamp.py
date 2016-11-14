@@ -328,13 +328,13 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         # CREATE SUBDIRECTORIES INSIDE TEMP DIRECTORY FOR ALL TEMP FILES
         #input_dir = os.path.join(gal_dir, 'input')
         #converted_dir = os.path.join(gal_dir, 'converted')
-        masked_dir = os.path.join(gal_dir, 'masked')
+        #masked_dir = os.path.join(gal_dir, 'masked')
         reprojected_dir = os.path.join(gal_dir, 'reprojected')
         weights_dir = os.path.join(gal_dir, 'weights')
         weighted_dir = os.path.join(gal_dir, 'weighted')
         final_dir = os.path.join(gal_dir, 'mosaic')
 
-        for indir in [reprojected_dir, weights_dir, weighted_dir, final_dir, masked_dir]:
+        for indir in [reprojected_dir, weights_dir, weighted_dir, final_dir]:
             os.makedirs(indir)
 
         # GATHER THE INPUT FILES
@@ -354,17 +354,19 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
         # PERFORM THE REPROJECTION, WEIGHTING, AND EXTRACTION
         # MASK IMAGES
-        int_suff, rrhr_suff, flag_suff = '*_mjysr.fits', '*-rrhr.fits', '*-flags.fits'
-        int_images = sorted(glob.glob(os.path.join(im_dir, int_suff)))
-        rrhr_images = sorted(glob.glob(os.path.join(wt_dir, rrhr_suff)))
+        #int_suff, rrhr_suff, flag_suff = '*_mjysr.fits', '*-rrhr.fits', '*-flags.fits'
+        #int_images = sorted(glob.glob(os.path.join(im_dir, int_suff)))
+        #rrhr_images = sorted(glob.glob(os.path.join(wt_dir, rrhr_suff)))
         #flag_images = sorted(glob.glob(os.path.join(input_dir, flag_suff)))
-        mask_images(int_images, rrhr_images, masked_dir)
+        #mask_images(int_images, rrhr_images, masked_dir)
+        im_dir, wt_dir = mask_images(im_dir, wt_dir, gal_dir)
 
 
         # MV INT AND RRHR MASKED IMAGES INTO THEIR OWN SUBDIRECTORIES
-        im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
-        imfiles = sorted(glob.glob(os.path.join(masked_dir, im_suff)))
-        wtfiles = sorted(glob.glob(os.path.join(masked_dir, wt_suff)))
+        #im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
+        im_suff, wt_suff = '*_mjysr.fits', '*-rrhr.fits'
+        imfiles = sorted(glob.glob(os.path.join(im_dir, im_suff)))
+        wtfiles = sorted(glob.glob(os.path.join(wt_dir, wt_suff)))
         int_masked_dir = os.path.join(masked_dir, 'int')
         rrhr_masked_dir = os.path.join(masked_dir, 'rrhr')
         os.makedirs(int_masked_dir)
@@ -600,15 +602,24 @@ def mask_galex(intfile, wtfile, outfile=None, chip_rad = 1400, chip_x0=1920, chi
         pyfits.writeto(out_wtfile, wt, whdr)
 
 
-def mask_images(int_images, rrhr_images, masked_dir):
+def mask_images(im_dir, wt_dir, gal_dir):
+    masked_dir = os.path.join(gal_dir, 'masked')
+    os.makedirs(masked_dir)
+
+    int_suff, rrhr_suff = '*_mjysr.fits', '*-rrhr.fits'
+    int_images = sorted(glob.glob(os.path.join(im_dir, int_suff)))
+    rrhr_images = sorted(glob.glob(os.path.join(wt_dir, rrhr_suff)))
+
     for i in range(len(int_images)):
         image_infile = int_images[i]
         wt_infile = rrhr_images[i]
 
-        image_outfile = os.path.join(masked_dir, os.path.basename(image_infile).replace('.fits', '_masked.fits'))
-        wt_outfile = os.path.join(masked_dir, os.path.basename(wt_infile).replace('.fits', '_masked.fits'))
+        image_outfile = os.path.join(masked_dir,os.path.basename(image_infile))
+        wt_outfile = os.path.join(masked_dir, os.path.basename(wt_infile))
 
         mask_galex(image_infile, wt_infile, out_intfile=image_outfile, out_wtfile=wt_outfile)
+
+    return masked_dir, masked_dir
 
 
 def reproject_images(template_header, input_dir, reprojected_dir, imtype, whole=False, exact=True, img_list=None):
