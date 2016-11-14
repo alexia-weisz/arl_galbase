@@ -20,8 +20,7 @@ def get_args():
     parser.add_argument('--copy', action='store_true')
     parser.add_argument('--convolve', action='store_true')
     parser.add_argument('--align', action='store_true')
-    parser.add_argument('--write_info', action='store_true', help='write galaxy info and output to file, e.g., # of tiles, time to completion.')
-    parser.add_argument('--bg_model', action='store_true', help='model the background to match all images as best as possible.')
+    parser.add_argument('--model_bg', action='store_true', help='model the background to match all images as best as possible.')
     return parser.parse_args()
 
 
@@ -37,10 +36,11 @@ def main(**kwargs):
         for i in range(n_gals):
             this_gal = np.rec.fromarrays(gals[i], names=list(config.COLUMNS))
             galname = str(this_gal.name).replace(' ', '').upper()
-            #print galname
-            extract_stamp.galex(band='fuv', ra_ctr=this_gal.ra_deg, dec_ctr=this_gal.dec_deg, size_deg=size_deg, name=galname, write_info=kwargs['write_info'], bg_model=kwargs['bg_model'])
 
-            #extract_stamp.galex(band='nuv', ra_ctr=this_gal.ra_deg, dec_ctr=this_gal.dec_deg, size_deg=size_deg, name=galname)
+            extract_stamp.galex(band='fuv', ra_ctr=this_gal.ra_deg, dec_ctr=this_gal.dec_deg, size_deg=size_deg, name=galname, model_bg=kwargs['model_bg'])
+
+            extract_stamp.galex(band='nuv', ra_ctr=this_gal.ra_deg, dec_ctr=this_gal.dec_deg, size_deg=size_deg, name=galname, model_bg=kwargs['model_bg'])
+
 
     if kwargs['copy']:
         pass

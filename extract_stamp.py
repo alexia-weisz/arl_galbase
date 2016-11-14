@@ -262,7 +262,7 @@ def counts2jy(norm_mag, calibration_value, pix_as):
 
 
 
-def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name=None, write_info=True, bg_model=False):
+def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name=None, write_info=True, model_bg=False):
     tel = 'galex'
     data_dir = os.path.join(_TOP_DIR, tel, 'sorted_tiles')
     problem_file = os.path.join(_HOME_DIR, 'problem_galaxies.txt')
@@ -352,7 +352,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
             # MODEL THE BACKGROUND IN THE IMAGE FILES?
-            if bg_model:
+            if model_bg:
                 im_dir = bg_model(gal_dir, im_dir, hdr_file)
 
 
