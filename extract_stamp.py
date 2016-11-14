@@ -272,8 +272,8 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
     galaxy_mosaic_file = os.path.join(_MOSAIC_DIR, '_'.join([name, band]).upper() + '.FITS')
 
     start_time = time.time()
-    if not os.path.exists(galaxy_mosaic_file):
-    #if name == 'NGC2976':
+    #if not os.path.exists(galaxy_mosaic_file):
+    if name == 'NGC1266':#2976':
         print name
         # READ THE INDEX FILE (IF NOT PASSED IN)
         if index is None:
@@ -492,7 +492,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
 
-def bg_model(gal_dir, reprojeced_dir, template_header, level_only=False):
+def bg_model(gal_dir, reprojected_dir, template_header, level_only=False):
     bg_model_dir = os.path.join(gal_dir, 'background_model')
     os.makedirs(bg_model_dir)
 
