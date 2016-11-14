@@ -419,9 +419,14 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
             reproject_images(hdr_file, rrhr_masked_dir, reprojected_dir,'rrhr')
 
 
+            # MODEL THE BACKGROUND?
+            corrected_dir = bg_model(gal_dir, reprojected_dir, hdr_file)
+
+
             # WEIGHT IMAGES
             im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
-            imfiles = sorted(glob.glob(os.path.join(reprojected_dir, im_suff)))
+            #imfiles = sorted(glob.glob(os.path.join(reprojected_dir, im_suff)))
+            imfiles = sorted(glob.glob(os.path.join(corrected_dir, im_suff)))
             wtfiles = sorted(glob.glob(os.path.join(reprojected_dir, wt_suff)))
             weight_images(imfiles, wtfiles, weighted_dir, weights_dir)
 
@@ -484,6 +489,48 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
             shutil.rmtree(gal_dir, ignore_errors=True)
 
     return
+
+
+
+def bg_model(gal_dir, reprojeced_dir, template_header, level_only=False):
+    bg_model_dir = os.path.join(gal_dir, 'background_model')
+    os.makedirs(bg_model_dir)
+
+    # FIND OVERLAPS
+    diff_dir = os.path.join(bg_model_dir, 'differences')
+    os.makedirs(diff_dir)
+    reprojected_table = os.path.join(reprojected_dir,'int_reprojected.tbl')
+    diffs_table = os.path.join(diff_dir, 'differences.tbl')
+    montage.mOverlaps(reprojected_table, diffs_table)
+
+
+    # CALCULATE DIFFERENCES BETWEEN OVERLAPPING IMAGES
+    montage.mDiffExec(diffs_table, template_header, diff_dir,
+                      proj_dir=reprojected_dir)
+
+
+    # BEST-FIT PLANE COEFFICIENTS
+    fits_table = os.path.join(diff_dir, 'fits.tbl')
+    montage.mFitExec(diffs_table, fits_table, diff_dir)
+
+
+    # CALCULATE CORRECTIONS
+    corr_dir = os.path.join(bg_model_dir, 'corrected')
+    os.makedirs(corr_dir)
+    corrections_table = os.path.join(corr_dir, 'corrections.tbl')
+    montage.mBgModel(reprojected_table, fits_table, corrections_table,
+                     level_only=level_only)
+
+
+    # APPLY CORRECTIONS
+    montage.mBgExec(reprojected_table, corrections_table, corr_dir,
+                    proj_dir=reprojected_dir)
+
+    return corr_dir
+
+
+
+
 
 def counts2jy_galex(counts, cal, pix_as):
     # first convert to abmag
