@@ -352,32 +352,14 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         hdr_file = os.path.join(gal_dir, name + '_template.hdr')
         write_headerfile(hdr_file, target_hdr)
 
-        # PERFORM THE REPROJECTION, WEIGHTING, AND EXTRACTION
+
         # MASK IMAGES
-        #int_suff, rrhr_suff, flag_suff = '*_mjysr.fits', '*-rrhr.fits', '*-flags.fits'
-        #int_images = sorted(glob.glob(os.path.join(im_dir, int_suff)))
-        #rrhr_images = sorted(glob.glob(os.path.join(wt_dir, rrhr_suff)))
-        #flag_images = sorted(glob.glob(os.path.join(input_dir, flag_suff)))
-        #mask_images(int_images, rrhr_images, masked_dir)
         im_dir, wt_dir = mask_images(im_dir, wt_dir, gal_dir)
 
 
-        # MV INT AND RRHR MASKED IMAGES INTO THEIR OWN SUBDIRECTORIES
-        #im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
-        im_suff, wt_suff = '*_mjysr.fits', '*-rrhr.fits'
-        imfiles = sorted(glob.glob(os.path.join(im_dir, im_suff)))
-        wtfiles = sorted(glob.glob(os.path.join(wt_dir, wt_suff)))
-        int_masked_dir = os.path.join(masked_dir, 'int')
-        rrhr_masked_dir = os.path.join(masked_dir, 'rrhr')
-        os.makedirs(int_masked_dir)
-        os.makedirs(rrhr_masked_dir)
-        [shutil.copy(f, int_masked_dir) for f in imfiles]
-        [shutil.copy(f, rrhr_masked_dir) for f in wtfiles]
-
-
         # REPROJECT IMAGES
-        reproject_images(hdr_file, int_masked_dir, reprojected_dir, 'int')
-        reproject_images(hdr_file, rrhr_masked_dir, reprojected_dir,'rrhr')
+        reproject_images(hdr_file, im_dir, reprojected_dir, 'int')
+        reproject_images(hdr_file, wt_dir, reprojected_dir,'rrhr')
 
 
         # MODEL THE BACKGROUND?
@@ -385,7 +367,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
         # WEIGHT IMAGES
-        im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
+        im_suff, wt_suff = '*_mjysr.fits', '*-rrhr.fits'
         #imfiles = sorted(glob.glob(os.path.join(reprojected_dir, im_suff)))
         imfiles = sorted(glob.glob(os.path.join(corrected_dir, im_suff)))
         wtfiles = sorted(glob.glob(os.path.join(reprojected_dir, wt_suff)))
@@ -510,6 +492,75 @@ def convert_files(gal_dir, im_dir, wt_dir, band, fuv_toab, nuv_toab, pix_as):
     return converted_dir, converted_dir
 
 
+def mask_images(im_dir, wt_dir, gal_dir):
+    masked_dir = os.path.join(gal_dir, 'masked')
+    os.makedirs(masked_dir)
+
+    int_masked_dir = os.path.join(masked_dir, 'int')
+    wt_masked_dir = os.path.join(masked_dir, 'rrhr')
+    os.makedirs(int_masked_dir)
+    os.makedirs(wt_masked_dir)
+
+    int_suff, rrhr_suff = '*_mjysr.fits', '*-rrhr.fits'
+    int_images = sorted(glob.glob(os.path.join(im_dir, int_suff)))
+    rrhr_images = sorted(glob.glob(os.path.join(wt_dir, rrhr_suff)))
+
+    for i in range(len(int_images)):
+        image_infile = int_images[i]
+        wt_infile = rrhr_images[i]
+
+        image_outfile = os.path.join(int_masked_dir, os.path.basename(image_infile))
+        wt_outfile = os.path.join(wt_masked_dir, os.path.basename(wt_infile))
+
+        mask_galex(image_infile, wt_infile, out_intfile=image_outfile, out_wtfile=wt_outfile)
+
+    return int_masked_dir, wt_masked_dir
+
+
+def mask_galex(intfile, wtfile, outfile=None, chip_rad = 1400, chip_x0=1920, chip_y0=1920, out_intfile=None, out_wtfile=None):
+
+    if out_intfile is None:
+        out_intfile = intfile.replace('.fits', '_masked.fits')
+    if out_wtfile is None:
+        out_wtfile = wtfile.replace('.fits', '_masked.fits')
+
+    if not os.path.exists(out_intfile):
+        data, hdr = pyfits.getdata(intfile, header=True)
+        wt, whdr = pyfits.getdata(wtfile, header=True)
+        #flag, fhdr = pyfits.getdata(flagfile, header=True)
+
+        #factor = float(len(data)) / len(flag)
+        #upflag = zoom(flag, factor, order=0)
+
+        x = np.arange(data.shape[1]).reshape(1, -1) + 1
+        y = np.arange(data.shape[0]).reshape(-1, 1) + 1
+        r = np.sqrt((x - chip_x0)**2 + (y - chip_y0)**2)
+
+        i = (r > chip_rad)
+        j = (data == 0)
+        k = (wt == -1.1e30)
+
+        data = np.where(i | k, 0, data)  #0
+        wt = np.where(i | k, 1e-20, wt) #1e-20
+
+        pyfits.writeto(out_intfile, data, hdr)
+        pyfits.writeto(out_wtfile, wt, whdr)
+
+
+def reproject_images(template_header, input_dir, reprojected_dir, imtype, whole=False, exact=True, img_list=None):
+
+    input_table = os.path.join(input_dir, imtype + '_input.tbl')
+    montage.mImgtbl(input_dir, input_table, corners=True, img_list=img_list)
+
+    # Create reprojection directory, reproject, and get image metadata
+    stats_table = os.path.join(reprojected_dir, imtype+'_mProjExec_stats.log')
+    montage.mProjExec(input_table, template_header, reprojected_dir, stats_table, raw_dir=input_dir, whole=whole, exact=exact)
+
+    reprojected_table = os.path.join(reprojected_dir, imtype + '_reprojected.tbl')
+    montage.mImgtbl(reprojected_dir, reprojected_table, corners=True)
+
+
+
 
 
 def bg_model(gal_dir, reprojected_dir, template_header, level_only=False):
@@ -572,67 +623,8 @@ def wtpersr(wt, pix_as):
     return wt / (np.radians(pix_as/3600))**2
 
 
-def mask_galex(intfile, wtfile, outfile=None, chip_rad = 1400, chip_x0=1920, chip_y0=1920, out_intfile=None, out_wtfile=None):
-
-    if out_intfile is None:
-        out_intfile = intfile.replace('.fits', '_masked.fits')
-    if out_wtfile is None:
-        out_wtfile = wtfile.replace('.fits', '_masked.fits')
-
-    if not os.path.exists(out_intfile):
-        data, hdr = pyfits.getdata(intfile, header=True)
-        wt, whdr = pyfits.getdata(wtfile, header=True)
-        #flag, fhdr = pyfits.getdata(flagfile, header=True)
-
-        #factor = float(len(data)) / len(flag)
-        #upflag = zoom(flag, factor, order=0)
-
-        x = np.arange(data.shape[1]).reshape(1, -1) + 1
-        y = np.arange(data.shape[0]).reshape(-1, 1) + 1
-        r = np.sqrt((x - chip_x0)**2 + (y - chip_y0)**2)
-
-        i = (r > chip_rad)
-        j = (data == 0)
-        k = (wt == -1.1e30)
-
-        data = np.where(i | k, 0, data)  #0
-        wt = np.where(i | k, 1e-20, wt) #1e-20
-
-        pyfits.writeto(out_intfile, data, hdr)
-        pyfits.writeto(out_wtfile, wt, whdr)
 
 
-def mask_images(im_dir, wt_dir, gal_dir):
-    masked_dir = os.path.join(gal_dir, 'masked')
-    os.makedirs(masked_dir)
-
-    int_suff, rrhr_suff = '*_mjysr.fits', '*-rrhr.fits'
-    int_images = sorted(glob.glob(os.path.join(im_dir, int_suff)))
-    rrhr_images = sorted(glob.glob(os.path.join(wt_dir, rrhr_suff)))
-
-    for i in range(len(int_images)):
-        image_infile = int_images[i]
-        wt_infile = rrhr_images[i]
-
-        image_outfile = os.path.join(masked_dir,os.path.basename(image_infile))
-        wt_outfile = os.path.join(masked_dir, os.path.basename(wt_infile))
-
-        mask_galex(image_infile, wt_infile, out_intfile=image_outfile, out_wtfile=wt_outfile)
-
-    return masked_dir, masked_dir
-
-
-def reproject_images(template_header, input_dir, reprojected_dir, imtype, whole=False, exact=True, img_list=None):
-
-    input_table = os.path.join(input_dir, imtype + '_input.tbl')
-    montage.mImgtbl(input_dir, input_table, corners=True, img_list=img_list)
-
-    # Create reprojection directory, reproject, and get image metadata
-    stats_table = os.path.join(reprojected_dir, imtype+'_mProjExec_stats.log')
-    montage.mProjExec(input_table, template_header, reprojected_dir, stats_table, raw_dir=input_dir, whole=whole, exact=exact)
-
-    reprojected_table = os.path.join(reprojected_dir, imtype + '_reprojected.tbl')
-    montage.mImgtbl(reprojected_dir, reprojected_table, corners=True)
 
 
 def weight_images(imfiles, wtfiles, weighted_dir, weights_dir):
