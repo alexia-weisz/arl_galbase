@@ -304,9 +304,9 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         #  index file set up such that index['fuv'] = 1 where fuv and
         #                              index['nuv'] = 1 where nuv
         ind = np.where((index[band]) & tile_overlaps)
-        ct_overlap = len(ind[0])
 
         # MAKE SURE THERE ARE OVERLAPPING TILES
+        ct_overlap = len(ind[0])
         if ct_overlap == 0:
             with open(problem_file, 'a') as myfile:
                 myfile.write(name + ': ' + 'No overlapping tiles\n')
@@ -320,105 +320,107 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         target_hdr = prihdu.header
 
 
-        #try:
-        # CREATE NEW TEMP DIRECTORY TO STORE TEMPORARY FILES
-        gal_dir = os.path.join(_HOME_DIR, name)
-        os.makedirs(gal_dir)
+        try:
+            # CREATE NEW TEMP DIRECTORY TO STORE TEMPORARY FILES
+            gal_dir = os.path.join(_HOME_DIR, name)
+            os.makedirs(gal_dir)
 
 
-        # GATHER THE INPUT FILES
-        im_dir, wt_dir, nfiles = get_input(index, ind, data_dir, gal_dir)
+            # GATHER THE INPUT FILES
+            im_dir, wt_dir, nfiles = get_input(index, ind, data_dir, gal_dir)
 
 
-        # CONVERT INT FILES TO MJY/SR AND WRITE NEW FILES INTO TEMP DIR
-        im_dir, wt_dir = convert_files(gal_dir, im_dir, wt_dir, band, fuv_toab, nuv_toab, pix_as)
+            # CONVERT INT FILES TO MJY/SR AND WRITE NEW FILES INTO TEMP DIR
+            im_dir, wt_dir = convert_files(gal_dir, im_dir, wt_dir, band, fuv_toab, nuv_toab, pix_as)
 
 
-        # APPEND UNIT INFORMATION TO THE NEW HEADER AND WRITE OUT HEADER FILE
-        target_hdr['BUNIT'] = 'MJY/SR'
-        hdr_file = os.path.join(gal_dir, name + '_template.hdr')
-        write_headerfile(hdr_file, target_hdr)
+            # APPEND UNIT INFORMATION TO THE NEW HEADER AND WRITE OUT HEADER FILE
+            target_hdr['BUNIT'] = 'MJY/SR'
+            hdr_file = os.path.join(gal_dir, name + '_template.hdr')
+            write_headerfile(hdr_file, target_hdr)
 
 
-        # MASK IMAGES
-        im_dir, wt_dir = mask_images(im_dir, wt_dir, gal_dir)
+            # MASK IMAGES
+            im_dir, wt_dir = mask_images(im_dir, wt_dir, gal_dir)
 
 
-        # REPROJECT IMAGES
-        reprojected_dir = os.path.join(gal_dir, 'reprojected')
-        os.makedirs(reprojected_dir)
-        im_dir = reproject_images(hdr_file, im_dir, reprojected_dir, 'int')
-        wt_dir = reproject_images(hdr_file, wt_dir, reprojected_dir,'rrhr')
+            # REPROJECT IMAGES
+            reprojected_dir = os.path.join(gal_dir, 'reprojected')
+            os.makedirs(reprojected_dir)
+            im_dir = reproject_images(hdr_file, im_dir, reprojected_dir, 'int')
+            wt_dir = reproject_images(hdr_file, wt_dir, reprojected_dir,'rrhr')
 
 
-        # MODEL THE BACKGROUND IN THE IMAGE FILES?
-        im_dir = bg_model(gal_dir, im_dir, hdr_file)
+            # MODEL THE BACKGROUND IN THE IMAGE FILES?
+            im_dir = bg_model(gal_dir, im_dir, hdr_file)
 
 
-        # WEIGHT IMAGES
-        weight_dir = os.path.join(gal_dir, 'weight')
-        os.makedirs(weight_dir)
-        im_dir, wt_dir = weight_images(im_dir, wt_dir, weight_dir)
+            # WEIGHT IMAGES
+            weight_dir = os.path.join(gal_dir, 'weight')
+            os.makedirs(weight_dir)
+            im_dir, wt_dir = weight_images(im_dir, wt_dir, weight_dir)
 
 
-        # CREATE THE METADATA TABLES NEEDED FOR COADDITION
-        #tables = create_tables(weights_dir, weighted_dir)
-        weight_table = create_table(wt_dir, dir_type='weights')
-        weighted_table = create_table(im_dir, dir_type='int')
-        count_table = create_table(im_dir, dir_type='count')
+            # CREATE THE METADATA TABLES NEEDED FOR COADDITION
+            weight_table = create_table(wt_dir, dir_type='weights')
+            weighted_table = create_table(im_dir, dir_type='int')
+            count_table = create_table(im_dir, dir_type='count')
 
 
-        # COADD THE REPROJECTED, WEIGHTED IMAGES AND THE WEIGHT IMAGES
-        final_dir = os.path.join(gal_dir, 'mosaic')
-        os.makedirs(final_dir)
-        coadd(hdr_file, final_dir, wt_dir, output='weights')
-        coadd(hdr_file, final_dir, im_dir, output='int')
-        coadd(hdr_file, final_dir, im_dir, output='count', add_type='count')
-
-        # DIVIDE OUT THE WEIGHTS
-        imagefile = finish_weight(final_dir)
+            # COADD THE REPROJECTED, WEIGHTED IMAGES AND THE WEIGHT IMAGES
+            final_dir = os.path.join(gal_dir, 'mosaic')
+            os.makedirs(final_dir)
+            coadd(hdr_file, final_dir, wt_dir, output='weights')
+            coadd(hdr_file, final_dir, im_dir, output='int')
+            coadd(hdr_file, final_dir, im_dir, output='count', add_type='count')
 
 
-        # SUBTRACT OUT THE BACKGROUND
-        remove_background(final_dir, imagefile, bg_reg_file)
+            # DIVIDE OUT THE WEIGHTS
+            imagefile = finish_weight(final_dir)
 
 
-        # COPY MOSAIC FILE TO CUTOUTS DIRECTORY
-        mosaic_file = os.path.join(final_dir, 'final_mosaic.fits')
-        weight_file = os.path.join(final_dir, 'weights_mosaic.fits')
-        count_file = os.path.join(final_dir, 'count_mosaic.fits')
-        newfile = '_'.join([name, band]).upper() + '.FITS'
-        wt_file = '_'.join([name, band]).upper() + '_weight.FITS'
-        ct_file = '_'.join([name, band]).upper() + '_count.FITS'
-        new_mosaic_file = os.path.join(_MOSAIC_DIR, newfile)
-        new_weight_file = os.path.join(_MOSAIC_DIR, wt_file)
-        new_count_file = os.path.join(_MOSAIC_DIR, ct_file)
-        shutil.copy(mosaic_file, new_mosaic_file)
-        shutil.copy(weight_file, new_weight_file)
-        shutil.copy(count_file, new_count_file)
+            # SUBTRACT OUT THE BACKGROUND
+            remove_background(final_dir, imagefile, bg_reg_file)
 
 
-        # REMOVE GALAXY DIRECTORY AND EXTRA FILES
-        shutil.rmtree(gal_dir, ignore_errors=True)
-        stop_time = time.time()
+            # COPY MOSAIC FILES TO CUTOUTS DIRECTORY
+            mosaic_file = os.path.join(final_dir, 'final_mosaic.fits')
+            weight_file = os.path.join(final_dir, 'weights_mosaic.fits')
+            count_file = os.path.join(final_dir, 'count_mosaic.fits')
+            newfile = '_'.join([name, band]).upper() + '.FITS'
+            wt_file = '_'.join([name, band]).upper() + '_weight.FITS'
+            ct_file = '_'.join([name, band]).upper() + '_count.FITS'
+            new_mosaic_file = os.path.join(_MOSAIC_DIR, newfile)
+            new_weight_file = os.path.join(_MOSAIC_DIR, wt_file)
+            new_count_file = os.path.join(_MOSAIC_DIR, ct_file)
+            shutil.copy(mosaic_file, new_mosaic_file)
+            shutil.copy(weight_file, new_weight_file)
+            shutil.copy(count_file, new_count_file)
 
-        total_time = (stop_time - start_time) / 60.
+
+            # REMOVE GALAXY DIRECTORY AND EXTRA FILES
+            shutil.rmtree(gal_dir, ignore_errors=True)
 
 
-        # WRITE OUT THE NUMBER OF TILES THAT OVERLAP THE GIVEN GALAXY
-        out_arr = [name, nfiles, np.around(total_time, 2)]
-        with open(numbers_file, 'a') as nfile:
-            nfile.write('{0: >10}'.format(out_arr[0]))
-            nfile.write('{0: >6}'.format(out_arr[1]))
-            nfile.write('{0: >6}'.format(out_arr[2]) + '\n')
-            #nfile.write(name + ': ' + str(len(infiles)) + '\n')
+            # NOTE TIME TO FINISH
+            stop_time = time.time()
+            total_time = (stop_time - start_time) / 60.
+
+
+            # WRITE OUT THE NUMBER OF TILES THAT OVERLAP THE GIVEN GALAXY
+            out_arr = [name, nfiles, np.around(total_time, 2)]
+            with open(numbers_file, 'a') as nfile:
+                nfile.write('{0: >10}'.format(out_arr[0]))
+                nfile.write('{0: >6}'.format(out_arr[1]))
+                nfile.write('{0: >6}'.format(out_arr[2]) + '\n')
+                #nfile.write(name + ': ' + str(len(infiles)) + '\n')
 
         # SOMETHING WENT WRONG
-        # except Exception as inst:
-        #     me = sys.exc_info()[0]
-        #     with open(problem_file, 'a') as myfile:
-        #         myfile.write(name + ': ' + str(me) + ': '+str(inst)+'\n')
-        #     shutil.rmtree(gal_dir, ignore_errors=True)
+        except Exception as inst:
+            me = sys.exc_info()[0]
+            with open(problem_file, 'a') as myfile:
+                myfile.write(name + ': ' + str(me) + ': '+str(inst)+'\n')
+            shutil.rmtree(gal_dir, ignore_errors=True)
 
     return
 
