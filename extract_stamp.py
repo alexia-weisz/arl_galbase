@@ -334,11 +334,12 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
             weighted_dir = os.path.join(gal_dir, 'weighted')
             final_dir = os.path.join(gal_dir, 'mosaic')
 
-            for indir in [input_dir, reprojected_dir, weights_dir, weighted_dir, final_dir, converted_dir, masked_dir]:
+            for indir in [reprojected_dir, weights_dir, weighted_dir, final_dir, converted_dir, masked_dir]:
                 os.makedirs(indir)
 
             # GATHER THE INPUT FILES
-            im_dir, wt_dir = get_input(index, ind, gal_dir)
+            im_dir, wt_dir = get_input(index, ind, data_dir, gal_dir)
+            input_dir = im_dir
             # infiles = index[ind[0]]['fname']
             # wtfiles = index[ind[0]]['rrhrfile']
             # flgfiles = index[ind[0]]['flagfile']
@@ -492,8 +493,8 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
     return
 
 
-def get_input(index, ind, gal_dir):
-    inptu_dir = os.path.join(gal_dir, 'input')
+def get_input(index, ind, data_dir, gal_dir):
+    input_dir = os.path.join(gal_dir, 'input')
     infiles = index[ind[0]]['fname']
     wtfiles = index[ind[0]]['rrhrfile']
     flgfiles = index[ind[0]]['flagfile']
