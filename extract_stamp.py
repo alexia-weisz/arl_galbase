@@ -345,10 +345,8 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         im_dir, wt_dir = convert_files(gal_dir, im_dir, wt_dir, band, fuv_toab, nuv_toab, pix_as)
 
 
-        # APPEND UNIT INFORMATION TO THE NEW HEADER
+        # APPEND UNIT INFORMATION TO THE NEW HEADER AND WRITE OUT HEADER FILE
         target_hdr['BUNIT'] = 'MJY/SR'
-
-        # WRITE OUT A HEADER FILE
         hdr_file = os.path.join(gal_dir, name + '_template.hdr')
         write_headerfile(hdr_file, target_hdr)
 
@@ -363,19 +361,22 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         im_dir = reproject_images(hdr_file, im_dir, reprojected_dir, 'int')
         wt_dir = reproject_images(hdr_file, wt_dir, reprojected_dir,'rrhr')
 
-        set_trace()
-        # MODEL THE BACKGROUND?
-        corrected_dir = bg_model(gal_dir, im_dir, hdr_file)
+
+        # MODEL THE BACKGROUND IN THE IMAGE FILES?
+        im_dir = bg_model(gal_dir, im_dir, hdr_file)
 
 
         # WEIGHT IMAGES
-        im_suff, wt_suff = '*_mjysr.fits', '*-rrhr.fits'
+        weight_dir = os.path.join(gal_dir, 'weight')
+        os.makedirs(weight_dir)
+        #im_suff, wt_suff = '*_mjysr.fits', '*-rrhr.fits'
         #imfiles = sorted(glob.glob(os.path.join(reprojected_dir, im_suff)))
-        imfiles = sorted(glob.glob(os.path.join(corrected_dir, im_suff)))
-        wtfiles = sorted(glob.glob(os.path.join(reprojected_dir, wt_suff)))
-        weight_images(imfiles, wtfiles, weighted_dir, weights_dir)
+        #imfiles = sorted(glob.glob(os.path.join(corrected_dir, im_suff)))
+        #wtfiles = sorted(glob.glob(os.path.join(reprojected_dir, wt_suff)))
+        #weight_images(imfiles, wtfiles, weighted_dir, weights_dir)
+        im_dir, wt_dir = weight_images(im_dir, wt_dir, weight_dir)
 
-
+        set_trace()
         # CREATE THE METADATA TABLES NEEDED FOR COADDITION
         #tables = create_tables(weights_dir, weighted_dir)
         weight_table = create_table(weights_dir, dir_type='weights')
@@ -567,8 +568,6 @@ def reproject_images(template_header, input_dir, reprojected_dir, imtype, whole=
     return reproj_imtype_dir
 
 
-
-
 def bg_model(gal_dir, reprojected_dir, template_header, level_only=False):
     bg_model_dir = os.path.join(gal_dir, 'background_model')
     os.makedirs(bg_model_dir)
@@ -607,6 +606,45 @@ def bg_model(gal_dir, reprojected_dir, template_header, level_only=False):
 
 
 
+def weight_images(im_dir, wt_dir, weight_dir):
+    im_suff, wt_suff = '*_mjysr.fits', '*-rrhr.fits'
+    imfiles = sorted(glob.glob(os.path.join(im_dir, im_suff)))
+    wtfiles = sorted(glob.glob(os.path.join(wt_dir, wt_suff)))
+
+    im_weight_dir = os.path.join(weight_dir, 'int')
+    wt_weight_dir = os.path.join(weight_dir, 'rrhr')
+    [os.makedirs(out_dir) for out_dir in [im_weight_dir, wt_weight_dir]]
+
+    for i in range(len(imfiles)):
+        imfile = imfiles[i]
+        wtfile = wtfiles[i]
+        im, hdr = pyfits.getdata(imfile, header=True)
+        rrhr, rrhrhdr = pyfits.getdata(wtfile, header=True)
+
+        wt = rrhr
+        newim = im * wt
+
+        #nf = imfiles[i].split('/')[-1].replace('.fits', '_weighted.fits')
+        #newfile = os.path.join(weighted_dir, nf)
+        newfile = os.path.join(im_weight_dir, basename(imfiles[i]))
+        pyfits.writeto(newfile, newim, hdr)
+        old_area_file = imfiles[i].replace('.fits', '_area.fits')
+        if os.path.exists(old_area_file):
+            new_area_file = newfile.replace('.fits', '_area.fits')
+            shutil.copy(old_area_file, new_area_file)
+
+        #nf = wtfiles[i].split('/')[-1].replace('.fits', '_weights.fits')
+        #weightfile = os.path.join(weights_dir, nf)
+        weightfile = os.path.join(wt_weight_dir, basename(wtfiles[i]))
+        pyfits.writeto(weightfile, wt, rrhrhdr)
+        old_area_file = wtfiles[i].replace('.fits', '_area.fits')
+        if os.path.exists(old_area_file):
+            new_area_file = weightfile.replace('.fits', '_area.fits')
+            shutil.copy(old_area_file, new_area_file)
+
+    return im_weight_dir, wt_weight_dir
+
+
 
 
 def counts2jy_galex(counts, cal, pix_as):
@@ -631,33 +669,6 @@ def wtpersr(wt, pix_as):
 
 
 
-
-
-def weight_images(imfiles, wtfiles, weighted_dir, weights_dir):
-    for i in range(len(imfiles)):
-        imfile = imfiles[i]
-        wtfile = wtfiles[i]
-        im, hdr = pyfits.getdata(imfile, header=True)
-        rrhr, rrhrhdr = pyfits.getdata(wtfile, header=True)
-
-        wt = rrhr
-        newim = im * wt
-
-        nf = imfiles[i].split('/')[-1].replace('.fits', '_weighted.fits')
-        newfile = os.path.join(weighted_dir, nf)
-        pyfits.writeto(newfile, newim, hdr)
-        old_area_file = imfiles[i].replace('.fits', '_area.fits')
-        if os.path.exists(old_area_file):
-            new_area_file = newfile.replace('.fits', '_area.fits')
-            shutil.copy(old_area_file, new_area_file)
-
-        nf = wtfiles[i].split('/')[-1].replace('.fits', '_weights.fits')
-        weightfile = os.path.join(weights_dir, nf)
-        pyfits.writeto(weightfile, wt, rrhrhdr)
-        old_area_file = wtfiles[i].replace('.fits', '_area.fits')
-        if os.path.exists(old_area_file):
-            new_area_file = weightfile.replace('.fits', '_area.fits')
-            shutil.copy(old_area_file, new_area_file)
 
 
 
