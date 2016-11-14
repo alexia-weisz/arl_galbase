@@ -326,7 +326,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
             os.makedirs(gal_dir)
 
             # CREATE SUBDIRECTORIES INSIDE TEMP DIRECTORY FOR ALL TEMP FILES
-            input_dir = os.path.join(gal_dir, 'input')
+            #input_dir = os.path.join(gal_dir, 'input')
             converted_dir = os.path.join(gal_dir, 'converted')
             masked_dir = os.path.join(gal_dir, 'masked')
             reprojected_dir = os.path.join(gal_dir, 'reprojected')
@@ -338,28 +338,29 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
                 os.makedirs(indir)
 
             # GATHER THE INPUT FILES
-            infiles = index[ind[0]]['fname']
-            wtfiles = index[ind[0]]['rrhrfile']
-            flgfiles = index[ind[0]]['flagfile']
-            infiles = [os.path.join(data_dir, f) for f in infiles]
-            wtfiles = [os.path.join(data_dir, f) for f in wtfiles]
-            flgfiles = [os.path.join(data_dir, f) for f in flgfiles]
+            im_dir, wt_dir = get_input(index, ind, gal_dir)
+            # infiles = index[ind[0]]['fname']
+            # wtfiles = index[ind[0]]['rrhrfile']
+            # flgfiles = index[ind[0]]['flagfile']
+            # infiles = [os.path.join(data_dir, f) for f in infiles]
+            # wtfiles = [os.path.join(data_dir, f) for f in wtfiles]
+            # flgfiles = [os.path.join(data_dir, f) for f in flgfiles]
 
-            # SYMLINK ORIGINAL FILES TO TEMPORARY INPUT DIRECTORY
-            for infile in infiles:
-                basename = os.path.basename(infile)
-                new_in_file = os.path.join(input_dir, basename)
-                os.symlink(infile, new_in_file)
+            # # SYMLINK ORIGINAL FILES TO TEMPORARY INPUT DIRECTORY
+            # for infile in infiles:
+            #     basename = os.path.basename(infile)
+            #     new_in_file = os.path.join(input_dir, basename)
+            #     os.symlink(infile, new_in_file)
 
-            for wtfile in wtfiles:
-                basename = os.path.basename(wtfile)
-                new_wt_file = os.path.join(input_dir, basename)
-                os.symlink(wtfile, new_wt_file)
+            # for wtfile in wtfiles:
+            #     basename = os.path.basename(wtfile)
+            #     new_wt_file = os.path.join(input_dir, basename)
+            #     os.symlink(wtfile, new_wt_file)
 
-            for flgfile in flgfiles:
-                basename = os.path.basename(flgfile)
-                new_flg_file = os.path.join(input_dir, basename)
-                os.symlink(flgfile, new_flg_file)
+            # for flgfile in flgfiles:
+            #     basename = os.path.basename(flgfile)
+            #     new_flg_file = os.path.join(input_dir, basename)
+            #     os.symlink(flgfile, new_flg_file)
 
             # CONVERT INT FILES TO MJY/SR AND WRITE NEW FILES INTO TEMP DIR
             # CONVERT WT FILES TO WT/SR AND WRITE NEW FILES INTO TEMP DIR
@@ -490,6 +491,32 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
     return
 
+
+def get_input(index, ind, gal_dir):
+    inptu_dir = os.path.join(gal_dir, 'input')
+    infiles = index[ind[0]]['fname']
+    wtfiles = index[ind[0]]['rrhrfile']
+    flgfiles = index[ind[0]]['flagfile']
+    infiles = [os.path.join(data_dir, f) for f in infiles]
+    wtfiles = [os.path.join(data_dir, f) for f in wtfiles]
+    flgfiles = [os.path.join(data_dir, f) for f in flgfiles]
+
+    for infile in infiles:
+        basename = os.path.basename(infile)
+        new_in_file = os.path.join(input_dir, basename)
+        os.symlink(infile, new_in_file)
+
+    for wtfile in wtfiles:
+        basename = os.path.basename(wtfile)
+        new_wt_file = os.path.join(input_dir, basename)
+        os.symlink(wtfile, new_wt_file)
+
+    for flgfile in flgfiles:
+        basename = os.path.basename(flgfile)
+        new_flg_file = os.path.join(input_dir, basename)
+        os.symlink(flgfile, new_flg_file)
+
+    return input_dir, input_dir
 
 
 def bg_model(gal_dir, reprojected_dir, template_header, level_only=False):
