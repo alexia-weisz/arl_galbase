@@ -327,45 +327,47 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
         # CREATE SUBDIRECTORIES INSIDE TEMP DIRECTORY FOR ALL TEMP FILES
         #input_dir = os.path.join(gal_dir, 'input')
-        converted_dir = os.path.join(gal_dir, 'converted')
+        #converted_dir = os.path.join(gal_dir, 'converted')
         masked_dir = os.path.join(gal_dir, 'masked')
         reprojected_dir = os.path.join(gal_dir, 'reprojected')
         weights_dir = os.path.join(gal_dir, 'weights')
         weighted_dir = os.path.join(gal_dir, 'weighted')
         final_dir = os.path.join(gal_dir, 'mosaic')
 
-        for indir in [reprojected_dir, weights_dir, weighted_dir, final_dir, converted_dir, masked_dir]:
+        for indir in [reprojected_dir, weights_dir, weighted_dir, final_dir, masked_dir]:
             os.makedirs(indir)
 
         # GATHER THE INPUT FILES
-        im_dir, wt_dir = get_input(index, ind, data_dir, gal_dir)
-        #input_dir = im_dir
+        im_dir, wt_dir, nfiles = get_input(index, ind, data_dir, gal_dir)
 
 
         # CONVERT INT FILES TO MJY/SR AND WRITE NEW FILES INTO TEMP DIR
-        # CONVERT WT FILES TO WT/SR AND WRITE NEW FILES INTO TEMP DIR
-        intfiles = sorted(glob.glob(os.path.join(im_dir, '*-int.fits')))
-        wtfiles = sorted(glob.glob(os.path.join(wt_dir, '*-rrhr.fits')))
+        im_dir, wt_dir = convert_files(gal_dir, im_dir, wt_dir, band, fuv_toab, nuv_toab, pix_as)
 
-        int_outfiles = [os.path.join(converted_dir, os.path.basename(f).replace('.fits', '_mjysr.fits')) for f in intfiles]
-        wt_outfiles = [os.path.join(converted_dir, os.path.basename(f).replace('.fits', '.fits')) for f in wtfiles]
 
-        for i in range(len(intfiles)):
-            if os.path.exists(wtfiles[i]):
-                im, hdr = pyfits.getdata(intfiles[i], header=True)
-                wt, whdr = pyfits.getdata(wtfiles[i], header=True)
-                #wt = wtpersr(wt, pix_as)
-                if band.lower() == 'fuv':
-                    im = counts2jy_galex(im, fuv_toab, pix_as)
-                if band.lower() == 'nuv':
-                    im = counts2jy_galex(im, nuv_toab, pix_as)
-                if not os.path.exists(int_outfiles[i]):
-                    im -= np.mean(im)
-                    pyfits.writeto(int_outfiles[i], im, hdr)
-                if not os.path.exists(wt_outfiles[i]):
-                    pyfits.writeto(wt_outfiles[i], wt, whdr)
-            else:
-                continue
+
+        # intfiles = sorted(glob.glob(os.path.join(im_dir, '*-int.fits')))
+        # wtfiles = sorted(glob.glob(os.path.join(wt_dir, '*-rrhr.fits')))
+
+        # int_outfiles = [os.path.join(converted_dir, os.path.basename(f).replace('.fits', '_mjysr.fits')) for f in intfiles]
+        # wt_outfiles = [os.path.join(converted_dir, os.path.basename(f).replace('.fits', '.fits')) for f in wtfiles]
+
+        # for i in range(len(intfiles)):
+        #     if os.path.exists(wtfiles[i]):
+        #         im, hdr = pyfits.getdata(intfiles[i], header=True)
+        #         wt, whdr = pyfits.getdata(wtfiles[i], header=True)
+        #         #wt = wtpersr(wt, pix_as)
+        #         if band.lower() == 'fuv':
+        #             im = counts2jy_galex(im, fuv_toab, pix_as)
+        #         if band.lower() == 'nuv':
+        #             im = counts2jy_galex(im, nuv_toab, pix_as)
+        #         if not os.path.exists(int_outfiles[i]):
+        #             im -= np.mean(im)
+        #             pyfits.writeto(int_outfiles[i], im, hdr)
+        #         if not os.path.exists(wt_outfiles[i]):
+        #             pyfits.writeto(wt_outfiles[i], wt, whdr)
+        #     else:
+        #         continue
 
         # APPEND UNIT INFORMATION TO THE NEW HEADER
         target_hdr['BUNIT'] = 'MJY/SR'
@@ -377,8 +379,8 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         # PERFORM THE REPROJECTION, WEIGHTING, AND EXTRACTION
         # MASK IMAGES
         int_suff, rrhr_suff, flag_suff = '*_mjysr.fits', '*-rrhr.fits', '*-flags.fits'
-        int_images = sorted(glob.glob(os.path.join(converted_dir, int_suff)))
-        rrhr_images = sorted(glob.glob(os.path.join(converted_dir, rrhr_suff)))
+        int_images = sorted(glob.glob(os.path.join(im_dir, int_suff)))
+        rrhr_images = sorted(glob.glob(os.path.join(wt_dir, rrhr_suff)))
         #flag_images = sorted(glob.glob(os.path.join(input_dir, flag_suff)))
         mask_images(int_images, rrhr_images, masked_dir)
 
@@ -455,7 +457,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
         # WRITE OUT THE NUMBER OF TILES THAT OVERLAP THE GIVEN GALAXY
-        out_arr = [name, len(intfiles), np.around(total_time,2)]
+        out_arr = [name, nfiles, np.around(total_time,2)]
         with open(numbers_file, 'a') as nfile:
             nfile.write('{0: >10}'.format(out_arr[0]))
             nfile.write('{0: >6}'.format(out_arr[1]))
@@ -497,7 +499,39 @@ def get_input(index, ind, data_dir, gal_dir):
         new_flg_file = os.path.join(input_dir, basename)
         os.symlink(flgfile, new_flg_file)
 
-    return input_dir, input_dir
+    return input_dir, input_dir, len(infiles)
+
+
+def convert_files(gal_dir, im_dir, wt_dir, band, fuv_toab, nuv_toab, pix_as):
+    converted_dir = os.path.join(gal_dir, 'converted')
+    os.makedirs(converted_dir)
+
+    intfiles = sorted(glob.glob(os.path.join(im_dir, '*-int.fits')))
+    wtfiles = sorted(glob.glob(os.path.join(wt_dir, '*-rrhr.fits')))
+
+    int_outfiles = [os.path.join(converted_dir, os.path.basename(f).replace('.fits', '_mjysr.fits')) for f in intfiles]
+    wt_outfiles = [os.path.join(converted_dir, os.path.basename(f)) for f in wtfiles]
+
+    for i in range(len(intfiles)):
+        if os.path.exists(wtfiles[i]):
+            im, hdr = pyfits.getdata(intfiles[i], header=True)
+            wt, whdr = pyfits.getdata(wtfiles[i], header=True)
+            #wt = wtpersr(wt, pix_as)
+            if band.lower() == 'fuv':
+                im = counts2jy_galex(im, fuv_toab, pix_as)
+            if band.lower() == 'nuv':
+                im = counts2jy_galex(im, nuv_toab, pix_as)
+            if not os.path.exists(int_outfiles[i]):
+                im -= np.mean(im)
+                pyfits.writeto(int_outfiles[i], im, hdr)
+            if not os.path.exists(wt_outfiles[i]):
+                pyfits.writeto(wt_outfiles[i], wt, whdr)
+        else:
+            continue
+
+    return converted_dir, converted_dir
+
+
 
 
 def bg_model(gal_dir, reprojected_dir, template_header, level_only=False):
