@@ -325,17 +325,6 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         gal_dir = os.path.join(_HOME_DIR, name)
         os.makedirs(gal_dir)
 
-        # CREATE SUBDIRECTORIES INSIDE TEMP DIRECTORY FOR ALL TEMP FILES
-        #input_dir = os.path.join(gal_dir, 'input')
-        #converted_dir = os.path.join(gal_dir, 'converted')
-        #masked_dir = os.path.join(gal_dir, 'masked')
-        #reprojected_dir = os.path.join(gal_dir, 'reprojected')
-        #weights_dir = os.path.join(gal_dir, 'weights')
-        #weighted_dir = os.path.join(gal_dir, 'weighted')
-        #final_dir = os.path.join(gal_dir, 'mosaic')
-
-        #for indir in [final_dir]:
-        #    os.makedirs(indir)
 
         # GATHER THE INPUT FILES
         im_dir, wt_dir, nfiles = get_input(index, ind, data_dir, gal_dir)
@@ -369,27 +358,22 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         # WEIGHT IMAGES
         weight_dir = os.path.join(gal_dir, 'weight')
         os.makedirs(weight_dir)
-        #im_suff, wt_suff = '*_mjysr.fits', '*-rrhr.fits'
-        #imfiles = sorted(glob.glob(os.path.join(reprojected_dir, im_suff)))
-        #imfiles = sorted(glob.glob(os.path.join(corrected_dir, im_suff)))
-        #wtfiles = sorted(glob.glob(os.path.join(reprojected_dir, wt_suff)))
-        #weight_images(imfiles, wtfiles, weighted_dir, weights_dir)
         im_dir, wt_dir = weight_images(im_dir, wt_dir, weight_dir)
 
-        set_trace()
+
         # CREATE THE METADATA TABLES NEEDED FOR COADDITION
         #tables = create_tables(weights_dir, weighted_dir)
-        weight_table = create_table(weights_dir, dir_type='weights')
-        weighted_table = create_table(weighted_dir, dir_type='int')
-        count_table = create_table(weighted_dir, dir_type='count')
+        weight_table = create_table(wt_dir, dir_type='weights')
+        weighted_table = create_table(im_dir, dir_type='int')
+        count_table = create_table(im_dir, dir_type='count')
 
 
         # COADD THE REPROJECTED, WEIGHTED IMAGES AND THE WEIGHT IMAGES
         final_dir = os.path.join(gal_dir, 'mosaic')
         os.makedirs(final_dir)
-        coadd(hdr_file, final_dir, weights_dir, output='weights')
-        coadd(hdr_file, final_dir, weighted_dir, output='int')
-        coadd(hdr_file, final_dir, weighted_dir, output='count', add_type='count')
+        coadd(hdr_file, final_dir, wt_dir, output='weights')
+        coadd(hdr_file, final_dir, im_dir, output='int')
+        coadd(hdr_file, final_dir, im_dir, output='count', add_type='count')
 
         # DIVIDE OUT THE WEIGHTS
         imagefile = finish_weight(final_dir)
@@ -607,7 +591,6 @@ def bg_model(gal_dir, reprojected_dir, template_header, level_only=False):
     return corr_dir
 
 
-
 def weight_images(im_dir, wt_dir, weight_dir):
     im_suff, wt_suff = '*_mjysr.fits', '*-rrhr.fits'
     imfiles = sorted(glob.glob(os.path.join(im_dir, im_suff)))
@@ -647,6 +630,14 @@ def weight_images(im_dir, wt_dir, weight_dir):
     return im_weight_dir, wt_weight_dir
 
 
+def create_table(in_dir, dir_type=None):
+    if dir_type is None:
+        reprojected_table = os.path.join(in_dir, 'reprojected.tbl')
+    else:
+        reprojected_table = os.path.join(in_dir, dir_type + '_reprojected.tbl')
+    montage.mImgtbl(in_dir, reprojected_table, corners=True)
+    return reprojected_table
+
 
 
 def counts2jy_galex(counts, cal, pix_as):
@@ -673,14 +664,6 @@ def wtpersr(wt, pix_as):
 
 
 
-
-def create_table(in_dir, dir_type=None):
-    if dir_type is None:
-        reprojected_table = os.path.join(in_dir, 'reprojected.tbl')
-    else:
-        reprojected_table = os.path.join(in_dir, dir_type + '_reprojected.tbl')
-    montage.mImgtbl(in_dir, reprojected_table, corners=True)
-    return reprojected_table
 
 
 def coadd(template_header, output_dir, input_dir, output=None, add_type=None):
