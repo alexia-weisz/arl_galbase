@@ -345,30 +345,6 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         im_dir, wt_dir = convert_files(gal_dir, im_dir, wt_dir, band, fuv_toab, nuv_toab, pix_as)
 
 
-
-        # intfiles = sorted(glob.glob(os.path.join(im_dir, '*-int.fits')))
-        # wtfiles = sorted(glob.glob(os.path.join(wt_dir, '*-rrhr.fits')))
-
-        # int_outfiles = [os.path.join(converted_dir, os.path.basename(f).replace('.fits', '_mjysr.fits')) for f in intfiles]
-        # wt_outfiles = [os.path.join(converted_dir, os.path.basename(f).replace('.fits', '.fits')) for f in wtfiles]
-
-        # for i in range(len(intfiles)):
-        #     if os.path.exists(wtfiles[i]):
-        #         im, hdr = pyfits.getdata(intfiles[i], header=True)
-        #         wt, whdr = pyfits.getdata(wtfiles[i], header=True)
-        #         #wt = wtpersr(wt, pix_as)
-        #         if band.lower() == 'fuv':
-        #             im = counts2jy_galex(im, fuv_toab, pix_as)
-        #         if band.lower() == 'nuv':
-        #             im = counts2jy_galex(im, nuv_toab, pix_as)
-        #         if not os.path.exists(int_outfiles[i]):
-        #             im -= np.mean(im)
-        #             pyfits.writeto(int_outfiles[i], im, hdr)
-        #         if not os.path.exists(wt_outfiles[i]):
-        #             pyfits.writeto(wt_outfiles[i], wt, whdr)
-        #     else:
-        #         continue
-
         # APPEND UNIT INFORMATION TO THE NEW HEADER
         target_hdr['BUNIT'] = 'MJY/SR'
 
@@ -457,7 +433,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
         # WRITE OUT THE NUMBER OF TILES THAT OVERLAP THE GIVEN GALAXY
-        out_arr = [name, nfiles, np.around(total_time,2)]
+        out_arr = [name, nfiles, np.around(total_time, 2)]
         with open(numbers_file, 'a') as nfile:
             nfile.write('{0: >10}'.format(out_arr[0]))
             nfile.write('{0: >6}'.format(out_arr[1]))
