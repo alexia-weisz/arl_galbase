@@ -330,12 +330,12 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         #converted_dir = os.path.join(gal_dir, 'converted')
         #masked_dir = os.path.join(gal_dir, 'masked')
         #reprojected_dir = os.path.join(gal_dir, 'reprojected')
-        weights_dir = os.path.join(gal_dir, 'weights')
-        weighted_dir = os.path.join(gal_dir, 'weighted')
-        final_dir = os.path.join(gal_dir, 'mosaic')
+        #weights_dir = os.path.join(gal_dir, 'weights')
+        #weighted_dir = os.path.join(gal_dir, 'weighted')
+        #final_dir = os.path.join(gal_dir, 'mosaic')
 
-        for indir in [weights_dir, weighted_dir, final_dir]:
-            os.makedirs(indir)
+        #for indir in [final_dir]:
+        #    os.makedirs(indir)
 
         # GATHER THE INPUT FILES
         im_dir, wt_dir, nfiles = get_input(index, ind, data_dir, gal_dir)
@@ -385,6 +385,8 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
         # COADD THE REPROJECTED, WEIGHTED IMAGES AND THE WEIGHT IMAGES
+        final_dir = os.path.join(gal_dir, 'mosaic')
+        os.makedirs(final_dir)
         coadd(hdr_file, final_dir, weights_dir, output='weights')
         coadd(hdr_file, final_dir, weighted_dir, output='int')
         coadd(hdr_file, final_dir, weighted_dir, output='count', add_type='count')
@@ -626,18 +628,18 @@ def weight_images(im_dir, wt_dir, weight_dir):
 
         #nf = imfiles[i].split('/')[-1].replace('.fits', '_weighted.fits')
         #newfile = os.path.join(weighted_dir, nf)
-        newfile = os.path.join(im_weight_dir, basename(imfiles[i]))
+        newfile = os.path.join(im_weight_dir, os.path.basename(imfile))
         pyfits.writeto(newfile, newim, hdr)
-        old_area_file = imfiles[i].replace('.fits', '_area.fits')
+        old_area_file = imfile.replace('.fits', '_area.fits')
         if os.path.exists(old_area_file):
             new_area_file = newfile.replace('.fits', '_area.fits')
             shutil.copy(old_area_file, new_area_file)
 
         #nf = wtfiles[i].split('/')[-1].replace('.fits', '_weights.fits')
         #weightfile = os.path.join(weights_dir, nf)
-        weightfile = os.path.join(wt_weight_dir, basename(wtfiles[i]))
+        weightfile = os.path.join(wt_weight_dir, os.path.basename(wtfile))
         pyfits.writeto(weightfile, wt, rrhrhdr)
-        old_area_file = wtfiles[i].replace('.fits', '_area.fits')
+        old_area_file = wtfile.replace('.fits', '_area.fits')
         if os.path.exists(old_area_file):
             new_area_file = weightfile.replace('.fits', '_area.fits')
             shutil.copy(old_area_file, new_area_file)
