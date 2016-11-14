@@ -329,12 +329,12 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         #input_dir = os.path.join(gal_dir, 'input')
         #converted_dir = os.path.join(gal_dir, 'converted')
         #masked_dir = os.path.join(gal_dir, 'masked')
-        reprojected_dir = os.path.join(gal_dir, 'reprojected')
+        #reprojected_dir = os.path.join(gal_dir, 'reprojected')
         weights_dir = os.path.join(gal_dir, 'weights')
         weighted_dir = os.path.join(gal_dir, 'weighted')
         final_dir = os.path.join(gal_dir, 'mosaic')
 
-        for indir in [reprojected_dir, weights_dir, weighted_dir, final_dir]:
+        for indir in [weights_dir, weighted_dir, final_dir]:
             os.makedirs(indir)
 
         # GATHER THE INPUT FILES
@@ -358,12 +358,14 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
         # REPROJECT IMAGES
-        reproject_images(hdr_file, im_dir, reprojected_dir, 'int')
-        reproject_images(hdr_file, wt_dir, reprojected_dir,'rrhr')
+        reprojected_dir = os.path.join(gal_dir, 'reprojected')
+        os.makedirs(reprojected_dir)
+        im_dir = reproject_images(hdr_file, im_dir, reprojected_dir, 'int')
+        wt_dir = reproject_images(hdr_file, wt_dir, reprojected_dir,'rrhr')
 
-
+        set_trace()
         # MODEL THE BACKGROUND?
-        corrected_dir = bg_model(gal_dir, reprojected_dir, hdr_file)
+        corrected_dir = bg_model(gal_dir, im_dir, hdr_file)
 
 
         # WEIGHT IMAGES
@@ -549,16 +551,20 @@ def mask_galex(intfile, wtfile, outfile=None, chip_rad = 1400, chip_x0=1920, chi
 
 def reproject_images(template_header, input_dir, reprojected_dir, imtype, whole=False, exact=True, img_list=None):
 
+    reproj_imtype_dir = os.path.join(reprojected_dir, imtype)
+    os.makedirs(reproj_imtype_dir)
+
     input_table = os.path.join(input_dir, imtype + '_input.tbl')
     montage.mImgtbl(input_dir, input_table, corners=True, img_list=img_list)
 
     # Create reprojection directory, reproject, and get image metadata
-    stats_table = os.path.join(reprojected_dir, imtype+'_mProjExec_stats.log')
-    montage.mProjExec(input_table, template_header, reprojected_dir, stats_table, raw_dir=input_dir, whole=whole, exact=exact)
+    stats_table = os.path.join(reproj_imtype_dir, imtype+'_mProjExec_stats.log')
+    montage.mProjExec(input_table, template_header, reproj_imtype_dir, stats_table, raw_dir=input_dir, whole=whole, exact=exact)
 
-    reprojected_table = os.path.join(reprojected_dir, imtype + '_reprojected.tbl')
-    montage.mImgtbl(reprojected_dir, reprojected_table, corners=True)
+    reprojected_table = os.path.join(reproj_imtype_dir, imtype + '_reprojected.tbl')
+    montage.mImgtbl(reproj_imtype_dir, reprojected_table, corners=True)
 
+    return reproj_imtype_dir
 
 
 
