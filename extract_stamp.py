@@ -339,7 +339,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
         # GATHER THE INPUT FILES
         im_dir, wt_dir = get_input(index, ind, data_dir, gal_dir)
-        input_dir = im_dir
+        #input_dir = im_dir
 
 
         # CONVERT INT FILES TO MJY/SR AND WRITE NEW FILES INTO TEMP DIR
@@ -380,7 +380,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         int_images = sorted(glob.glob(os.path.join(converted_dir, int_suff)))
         rrhr_images = sorted(glob.glob(os.path.join(converted_dir, rrhr_suff)))
         #flag_images = sorted(glob.glob(os.path.join(input_dir, flag_suff)))
-        mask_images(int_images, rrhr_images, input_dir,masked_dir)
+        mask_images(int_images, rrhr_images, masked_dir)
 
 
         # MV INT AND RRHR MASKED IMAGES INTO THEIR OWN SUBDIRECTORIES
@@ -590,7 +590,7 @@ def mask_galex(intfile, wtfile, outfile=None, chip_rad = 1400, chip_x0=1920, chi
         pyfits.writeto(out_wtfile, wt, whdr)
 
 
-def mask_images(int_images, rrhr_images, input_dir, masked_dir):
+def mask_images(int_images, rrhr_images, masked_dir):
     for i in range(len(int_images)):
         image_infile = int_images[i]
         wt_infile = rrhr_images[i]
