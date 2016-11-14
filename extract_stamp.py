@@ -320,181 +320,182 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         target_hdr = prihdu.header
 
 
-        try:
-            # CREATE NEW TEMP DIRECTORY TO STORE TEMPORARY FILES
-            gal_dir = os.path.join(_HOME_DIR, name)
-            os.makedirs(gal_dir)
+        #try:
+        # CREATE NEW TEMP DIRECTORY TO STORE TEMPORARY FILES
+        gal_dir = os.path.join(_HOME_DIR, name)
+        os.makedirs(gal_dir)
 
-            # CREATE SUBDIRECTORIES INSIDE TEMP DIRECTORY FOR ALL TEMP FILES
-            #input_dir = os.path.join(gal_dir, 'input')
-            converted_dir = os.path.join(gal_dir, 'converted')
-            masked_dir = os.path.join(gal_dir, 'masked')
-            reprojected_dir = os.path.join(gal_dir, 'reprojected')
-            weights_dir = os.path.join(gal_dir, 'weights')
-            weighted_dir = os.path.join(gal_dir, 'weighted')
-            final_dir = os.path.join(gal_dir, 'mosaic')
+        # CREATE SUBDIRECTORIES INSIDE TEMP DIRECTORY FOR ALL TEMP FILES
+        #input_dir = os.path.join(gal_dir, 'input')
+        converted_dir = os.path.join(gal_dir, 'converted')
+        masked_dir = os.path.join(gal_dir, 'masked')
+        reprojected_dir = os.path.join(gal_dir, 'reprojected')
+        weights_dir = os.path.join(gal_dir, 'weights')
+        weighted_dir = os.path.join(gal_dir, 'weighted')
+        final_dir = os.path.join(gal_dir, 'mosaic')
 
-            for indir in [reprojected_dir, weights_dir, weighted_dir, final_dir, converted_dir, masked_dir]:
-                os.makedirs(indir)
+        for indir in [reprojected_dir, weights_dir, weighted_dir, final_dir, converted_dir, masked_dir]:
+            os.makedirs(indir)
 
-            # GATHER THE INPUT FILES
-            im_dir, wt_dir = get_input(index, ind, data_dir, gal_dir)
-            input_dir = im_dir
-            # infiles = index[ind[0]]['fname']
-            # wtfiles = index[ind[0]]['rrhrfile']
-            # flgfiles = index[ind[0]]['flagfile']
-            # infiles = [os.path.join(data_dir, f) for f in infiles]
-            # wtfiles = [os.path.join(data_dir, f) for f in wtfiles]
-            # flgfiles = [os.path.join(data_dir, f) for f in flgfiles]
+        # GATHER THE INPUT FILES
+        im_dir, wt_dir = get_input(index, ind, data_dir, gal_dir)
+        input_dir = im_dir
+        # infiles = index[ind[0]]['fname']
+        # wtfiles = index[ind[0]]['rrhrfile']
+        # flgfiles = index[ind[0]]['flagfile']
+        # infiles = [os.path.join(data_dir, f) for f in infiles]
+        # wtfiles = [os.path.join(data_dir, f) for f in wtfiles]
+        # flgfiles = [os.path.join(data_dir, f) for f in flgfiles]
 
-            # # SYMLINK ORIGINAL FILES TO TEMPORARY INPUT DIRECTORY
-            # for infile in infiles:
-            #     basename = os.path.basename(infile)
-            #     new_in_file = os.path.join(input_dir, basename)
-            #     os.symlink(infile, new_in_file)
+        # # SYMLINK ORIGINAL FILES TO TEMPORARY INPUT DIRECTORY
+        # for infile in infiles:
+        #     basename = os.path.basename(infile)
+        #     new_in_file = os.path.join(input_dir, basename)
+        #     os.symlink(infile, new_in_file)
 
-            # for wtfile in wtfiles:
-            #     basename = os.path.basename(wtfile)
-            #     new_wt_file = os.path.join(input_dir, basename)
-            #     os.symlink(wtfile, new_wt_file)
+        # for wtfile in wtfiles:
+        #     basename = os.path.basename(wtfile)
+        #     new_wt_file = os.path.join(input_dir, basename)
+        #     os.symlink(wtfile, new_wt_file)
 
-            # for flgfile in flgfiles:
-            #     basename = os.path.basename(flgfile)
-            #     new_flg_file = os.path.join(input_dir, basename)
-            #     os.symlink(flgfile, new_flg_file)
+        # for flgfile in flgfiles:
+        #     basename = os.path.basename(flgfile)
+        #     new_flg_file = os.path.join(input_dir, basename)
+        #     os.symlink(flgfile, new_flg_file)
 
-            # CONVERT INT FILES TO MJY/SR AND WRITE NEW FILES INTO TEMP DIR
-            # CONVERT WT FILES TO WT/SR AND WRITE NEW FILES INTO TEMP DIR
-            intfiles = sorted(glob.glob(os.path.join(input_dir, '*-int.fits')))
-            wtfiles = sorted(glob.glob(os.path.join(input_dir, '*-rrhr.fits')))
+        # CONVERT INT FILES TO MJY/SR AND WRITE NEW FILES INTO TEMP DIR
+        # CONVERT WT FILES TO WT/SR AND WRITE NEW FILES INTO TEMP DIR
+        intfiles = sorted(glob.glob(os.path.join(input_dir, '*-int.fits')))
+        wtfiles = sorted(glob.glob(os.path.join(input_dir, '*-rrhr.fits')))
 
-            int_outfiles = [os.path.join(converted_dir, os.path.basename(f).replace('.fits', '_mjysr.fits')) for f in intfiles]
-            wt_outfiles = [os.path.join(converted_dir, os.path.basename(f).replace('.fits', '.fits')) for f in wtfiles]
+        int_outfiles = [os.path.join(converted_dir, os.path.basename(f).replace('.fits', '_mjysr.fits')) for f in intfiles]
+        wt_outfiles = [os.path.join(converted_dir, os.path.basename(f).replace('.fits', '.fits')) for f in wtfiles]
 
-            for i in range(len(infiles)):
-                if os.path.exists(wtfiles[i]):
-                    im, hdr = pyfits.getdata(infiles[i], header=True)
-                    wt, whdr = pyfits.getdata(wtfiles[i], header=True)
-                    #wt = wtpersr(wt, pix_as)
-                    if band.lower() == 'fuv':
-                        im = counts2jy_galex(im, fuv_toab, pix_as)
-                    if band.lower() == 'nuv':
-                        im = counts2jy_galex(im, nuv_toab, pix_as)
-                    if not os.path.exists(int_outfiles[i]):
-                        im -= np.mean(im)
-                        pyfits.writeto(int_outfiles[i], im, hdr)
-                    if not os.path.exists(wt_outfiles[i]):
-                        pyfits.writeto(wt_outfiles[i], wt, whdr)
-                else:
-                    continue
+        for i in range(len(intfiles)):
+            if os.path.exists(wtfiles[i]):
+                im, hdr = pyfits.getdata(intfiles[i], header=True)
+                wt, whdr = pyfits.getdata(wtfiles[i], header=True)
+                #wt = wtpersr(wt, pix_as)
+                if band.lower() == 'fuv':
+                    im = counts2jy_galex(im, fuv_toab, pix_as)
+                if band.lower() == 'nuv':
+                    im = counts2jy_galex(im, nuv_toab, pix_as)
+                if not os.path.exists(int_outfiles[i]):
+                    im -= np.mean(im)
+                    pyfits.writeto(int_outfiles[i], im, hdr)
+                if not os.path.exists(wt_outfiles[i]):
+                    pyfits.writeto(wt_outfiles[i], wt, whdr)
+            else:
+                continue
 
-            # APPEND UNIT INFORMATION TO THE NEW HEADER
-            target_hdr['BUNIT'] = 'MJY/SR'
+        # APPEND UNIT INFORMATION TO THE NEW HEADER
+        target_hdr['BUNIT'] = 'MJY/SR'
 
-            # WRITE OUT A HEADER FILE
-            hdr_file = os.path.join(gal_dir, name + '_template.hdr')
-            write_headerfile(hdr_file, target_hdr)
+        # WRITE OUT A HEADER FILE
+        hdr_file = os.path.join(gal_dir, name + '_template.hdr')
+        write_headerfile(hdr_file, target_hdr)
 
-            # PERFORM THE REPROJECTION, WEIGHTING, AND EXTRACTION
-            # MASK IMAGES
-            int_suff, rrhr_suff, flag_suff = '*_mjysr.fits', '*-rrhr.fits', '*-flags.fits'
-            int_images = sorted(glob.glob(os.path.join(converted_dir, int_suff)))
-            rrhr_images = sorted(glob.glob(os.path.join(converted_dir, rrhr_suff)))
-            flag_images = sorted(glob.glob(os.path.join(input_dir, flag_suff)))
-            mask_images(int_images, rrhr_images, flag_images, input_dir,masked_dir)
-
-
-            # MV INT AND RRHR MASKED IMAGES INTO THEIR OWN SUBDIRECTORIES
-            im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
-            imfiles = sorted(glob.glob(os.path.join(masked_dir, im_suff)))
-            wtfiles = sorted(glob.glob(os.path.join(masked_dir, wt_suff)))
-            int_masked_dir = os.path.join(masked_dir, 'int')
-            rrhr_masked_dir = os.path.join(masked_dir, 'rrhr')
-            os.makedirs(int_masked_dir)
-            os.makedirs(rrhr_masked_dir)
-            [shutil.copy(f, int_masked_dir) for f in imfiles]
-            [shutil.copy(f, rrhr_masked_dir) for f in wtfiles]
+        # PERFORM THE REPROJECTION, WEIGHTING, AND EXTRACTION
+        # MASK IMAGES
+        int_suff, rrhr_suff, flag_suff = '*_mjysr.fits', '*-rrhr.fits', '*-flags.fits'
+        int_images = sorted(glob.glob(os.path.join(converted_dir, int_suff)))
+        rrhr_images = sorted(glob.glob(os.path.join(converted_dir, rrhr_suff)))
+        flag_images = sorted(glob.glob(os.path.join(input_dir, flag_suff)))
+        mask_images(int_images, rrhr_images, flag_images, input_dir,masked_dir)
 
 
-            # REPROJECT IMAGES
-            reproject_images(hdr_file, int_masked_dir, reprojected_dir, 'int')
-            reproject_images(hdr_file, rrhr_masked_dir, reprojected_dir,'rrhr')
+        # MV INT AND RRHR MASKED IMAGES INTO THEIR OWN SUBDIRECTORIES
+        im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
+        imfiles = sorted(glob.glob(os.path.join(masked_dir, im_suff)))
+        wtfiles = sorted(glob.glob(os.path.join(masked_dir, wt_suff)))
+        int_masked_dir = os.path.join(masked_dir, 'int')
+        rrhr_masked_dir = os.path.join(masked_dir, 'rrhr')
+        os.makedirs(int_masked_dir)
+        os.makedirs(rrhr_masked_dir)
+        [shutil.copy(f, int_masked_dir) for f in imfiles]
+        [shutil.copy(f, rrhr_masked_dir) for f in wtfiles]
 
 
-            # MODEL THE BACKGROUND?
-            corrected_dir = bg_model(gal_dir, reprojected_dir, hdr_file)
+        # REPROJECT IMAGES
+        reproject_images(hdr_file, int_masked_dir, reprojected_dir, 'int')
+        reproject_images(hdr_file, rrhr_masked_dir, reprojected_dir,'rrhr')
 
 
-            # WEIGHT IMAGES
-            im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
-            #imfiles = sorted(glob.glob(os.path.join(reprojected_dir, im_suff)))
-            imfiles = sorted(glob.glob(os.path.join(corrected_dir, im_suff)))
-            wtfiles = sorted(glob.glob(os.path.join(reprojected_dir, wt_suff)))
-            weight_images(imfiles, wtfiles, weighted_dir, weights_dir)
+        # MODEL THE BACKGROUND?
+        corrected_dir = bg_model(gal_dir, reprojected_dir, hdr_file)
 
 
-            # CREATE THE METADATA TABLES NEEDED FOR COADDITION
-            #tables = create_tables(weights_dir, weighted_dir)
-            weight_table = create_table(weights_dir, dir_type='weights')
-            weighted_table = create_table(weighted_dir, dir_type='int')
-            count_table = create_table(weighted_dir, dir_type='count')
+        # WEIGHT IMAGES
+        im_suff, wt_suff = '*_mjysr_masked.fits', '*-rrhr_masked.fits'
+        #imfiles = sorted(glob.glob(os.path.join(reprojected_dir, im_suff)))
+        imfiles = sorted(glob.glob(os.path.join(corrected_dir, im_suff)))
+        wtfiles = sorted(glob.glob(os.path.join(reprojected_dir, wt_suff)))
+        weight_images(imfiles, wtfiles, weighted_dir, weights_dir)
 
 
-            # COADD THE REPROJECTED, WEIGHTED IMAGES AND THE WEIGHT IMAGES
-            coadd(hdr_file, final_dir, weights_dir, output='weights')
-            coadd(hdr_file, final_dir, weighted_dir, output='int')
-            coadd(hdr_file, final_dir, weighted_dir, output='count', add_type='count')
-
-            # DIVIDE OUT THE WEIGHTS
-            imagefile = finish_weight(final_dir)
+        # CREATE THE METADATA TABLES NEEDED FOR COADDITION
+        #tables = create_tables(weights_dir, weighted_dir)
+        weight_table = create_table(weights_dir, dir_type='weights')
+        weighted_table = create_table(weighted_dir, dir_type='int')
+        count_table = create_table(weighted_dir, dir_type='count')
 
 
-            # SUBTRACT OUT THE BACKGROUND
-            remove_background(final_dir, imagefile, bg_reg_file)
+        # COADD THE REPROJECTED, WEIGHTED IMAGES AND THE WEIGHT IMAGES
+        coadd(hdr_file, final_dir, weights_dir, output='weights')
+        coadd(hdr_file, final_dir, weighted_dir, output='int')
+        coadd(hdr_file, final_dir, weighted_dir, output='count', add_type='count')
+
+        # DIVIDE OUT THE WEIGHTS
+        imagefile = finish_weight(final_dir)
 
 
-            # COPY MOSAIC FILE TO CUTOUTS DIRECTORY
-            mosaic_file = os.path.join(final_dir, 'final_mosaic.fits')
-            weight_file = os.path.join(final_dir, 'weights_mosaic.fits')
-            count_file = os.path.join(final_dir, 'count_mosaic.fits')
-            newfile = '_'.join([name, band]).upper() + '.FITS'
-            wt_file = '_'.join([name, band]).upper() + '_weight.FITS'
-            ct_file = '_'.join([name, band]).upper() + '_count.FITS'
-            new_mosaic_file = os.path.join(_MOSAIC_DIR, newfile)
-            new_weight_file = os.path.join(_MOSAIC_DIR, wt_file)
-            new_count_file = os.path.join(_MOSAIC_DIR, ct_file)
-            shutil.copy(mosaic_file, new_mosaic_file)
-            shutil.copy(weight_file, new_weight_file)
-            shutil.copy(count_file, new_count_file)
+        # SUBTRACT OUT THE BACKGROUND
+        remove_background(final_dir, imagefile, bg_reg_file)
 
 
-            # REMOVE GALAXY DIRECTORY AND EXTRA FILES
-            shutil.rmtree(gal_dir, ignore_errors=True)
-            stop_time = time.time()
+        # COPY MOSAIC FILE TO CUTOUTS DIRECTORY
+        mosaic_file = os.path.join(final_dir, 'final_mosaic.fits')
+        weight_file = os.path.join(final_dir, 'weights_mosaic.fits')
+        count_file = os.path.join(final_dir, 'count_mosaic.fits')
+        newfile = '_'.join([name, band]).upper() + '.FITS'
+        wt_file = '_'.join([name, band]).upper() + '_weight.FITS'
+        ct_file = '_'.join([name, band]).upper() + '_count.FITS'
+        new_mosaic_file = os.path.join(_MOSAIC_DIR, newfile)
+        new_weight_file = os.path.join(_MOSAIC_DIR, wt_file)
+        new_count_file = os.path.join(_MOSAIC_DIR, ct_file)
+        shutil.copy(mosaic_file, new_mosaic_file)
+        shutil.copy(weight_file, new_weight_file)
+        shutil.copy(count_file, new_count_file)
 
-            total_time = (stop_time - start_time) / 60.
+
+        # REMOVE GALAXY DIRECTORY AND EXTRA FILES
+        shutil.rmtree(gal_dir, ignore_errors=True)
+        stop_time = time.time()
+
+        total_time = (stop_time - start_time) / 60.
 
 
-            # WRITE OUT THE NUMBER OF TILES THAT OVERLAP THE GIVEN GALAXY
-            out_arr = [name, len(infiles), np.around(total_time,2)]
-            with open(numbers_file, 'a') as nfile:
-                nfile.write('{0: >10}'.format(out_arr[0]))
-                nfile.write('{0: >6}'.format(out_arr[1]))
-                nfile.write('{0: >6}'.format(out_arr[2]) + '\n')
-                #nfile.write(name + ': ' + str(len(infiles)) + '\n')
+        # WRITE OUT THE NUMBER OF TILES THAT OVERLAP THE GIVEN GALAXY
+        out_arr = [name, len(infiles), np.around(total_time,2)]
+        with open(numbers_file, 'a') as nfile:
+            nfile.write('{0: >10}'.format(out_arr[0]))
+            nfile.write('{0: >6}'.format(out_arr[1]))
+            nfile.write('{0: >6}'.format(out_arr[2]) + '\n')
+            #nfile.write(name + ': ' + str(len(infiles)) + '\n')
 
         # SOMETHING WENT WRONG
-        except Exception as inst:
-            me = sys.exc_info()[0]
-            with open(problem_file, 'a') as myfile:
-                myfile.write(name + ': ' + str(me) + ': '+str(inst)+'\n')
-            shutil.rmtree(gal_dir, ignore_errors=True)
+        # except Exception as inst:
+        #     me = sys.exc_info()[0]
+        #     with open(problem_file, 'a') as myfile:
+        #         myfile.write(name + ': ' + str(me) + ': '+str(inst)+'\n')
+        #     shutil.rmtree(gal_dir, ignore_errors=True)
 
     return
 
 
 def get_input(index, ind, data_dir, gal_dir):
     input_dir = os.path.join(gal_dir, 'input')
+    os.makedirs(input_dir)
     infiles = index[ind[0]]['fname']
     wtfiles = index[ind[0]]['rrhrfile']
     flgfiles = index[ind[0]]['flagfile']
