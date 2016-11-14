@@ -262,7 +262,7 @@ def counts2jy(norm_mag, calibration_value, pix_as):
 
 
 
-def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name=None, write_info=True):
+def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name=None, write_info=True, bg_model=False):
     tel = 'galex'
     data_dir = os.path.join(_TOP_DIR, tel, 'sorted_tiles')
     problem_file = os.path.join(_HOME_DIR, 'problem_galaxies.txt')
@@ -272,8 +272,8 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
     galaxy_mosaic_file = os.path.join(_MOSAIC_DIR, '_'.join([name, band]).upper() + '.FITS')
 
     start_time = time.time()
-    #if not os.path.exists(galaxy_mosaic_file):
-    if name == 'NGC1266':#2976':
+    if not os.path.exists(galaxy_mosaic_file):
+    #if name == 'NGC1266':#2976':
         print name
         # READ THE INDEX FILE (IF NOT PASSED IN)
         if index is None:
@@ -352,7 +352,8 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
             # MODEL THE BACKGROUND IN THE IMAGE FILES?
-            im_dir = bg_model(gal_dir, im_dir, hdr_file)
+            if bg_model:
+                im_dir = bg_model(gal_dir, im_dir, hdr_file)
 
 
             # WEIGHT IMAGES
@@ -372,7 +373,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
             os.makedirs(final_dir)
             coadd(hdr_file, final_dir, wt_dir, output='weights')
             coadd(hdr_file, final_dir, im_dir, output='int')
-            coadd(hdr_file, final_dir, im_dir, output='count', add_type='count')
+            coadd(hdr_file, final_dir, im_dir, output='count',add_type='count')
 
 
             # DIVIDE OUT THE WEIGHTS
