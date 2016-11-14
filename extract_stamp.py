@@ -340,28 +340,6 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
         # GATHER THE INPUT FILES
         im_dir, wt_dir = get_input(index, ind, data_dir, gal_dir)
         input_dir = im_dir
-        # infiles = index[ind[0]]['fname']
-        # wtfiles = index[ind[0]]['rrhrfile']
-        # flgfiles = index[ind[0]]['flagfile']
-        # infiles = [os.path.join(data_dir, f) for f in infiles]
-        # wtfiles = [os.path.join(data_dir, f) for f in wtfiles]
-        # flgfiles = [os.path.join(data_dir, f) for f in flgfiles]
-
-        # # SYMLINK ORIGINAL FILES TO TEMPORARY INPUT DIRECTORY
-        # for infile in infiles:
-        #     basename = os.path.basename(infile)
-        #     new_in_file = os.path.join(input_dir, basename)
-        #     os.symlink(infile, new_in_file)
-
-        # for wtfile in wtfiles:
-        #     basename = os.path.basename(wtfile)
-        #     new_wt_file = os.path.join(input_dir, basename)
-        #     os.symlink(wtfile, new_wt_file)
-
-        # for flgfile in flgfiles:
-        #     basename = os.path.basename(flgfile)
-        #     new_flg_file = os.path.join(input_dir, basename)
-        #     os.symlink(flgfile, new_flg_file)
 
         # CONVERT INT FILES TO MJY/SR AND WRITE NEW FILES INTO TEMP DIR
         # CONVERT WT FILES TO WT/SR AND WRITE NEW FILES INTO TEMP DIR
@@ -476,7 +454,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
         # WRITE OUT THE NUMBER OF TILES THAT OVERLAP THE GIVEN GALAXY
-        out_arr = [name, len(infiles), np.around(total_time,2)]
+        out_arr = [name, len(intfiles), np.around(total_time,2)]
         with open(numbers_file, 'a') as nfile:
             nfile.write('{0: >10}'.format(out_arr[0]))
             nfile.write('{0: >6}'.format(out_arr[1]))
