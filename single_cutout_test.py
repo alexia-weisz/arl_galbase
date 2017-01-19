@@ -342,7 +342,6 @@ def main(**kwargs):
             galname = str(this_gal.name).replace(' ', '').upper()
 
             if galname == 'NGC2976':
-                set_trace()
                 galex(band='fuv', ra_ctr=this_gal.ra_deg, dec_ctr=this_gal.dec_deg, size_deg=size_deg, name=galname)
 
                 #galex(band='nuv', ra_ctr=this_gal.ra_deg, dec_ctr=this_gal.dec_deg, size_deg=size_deg, name=galname)

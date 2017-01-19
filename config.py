@@ -14,6 +14,7 @@ else:
 
 PROP_ARRAY = np.asarray([['name', object, ''],
               ['pgc', int, 0],
+              ['pgcname', object, ''],
               ['alias', object, ''],
               ['tags', object, ''],
               ['dist_mpc', float, np.nan],

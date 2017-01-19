@@ -15,7 +15,7 @@ def gal_data(names=None, data=None, all=False, data_dir=None, tag=None):
 
     # READ IN THE DATA
     if data is None:
-        dbfile = os.path.join(galdata_dir, 'gal_base.fits')
+        dbfile = os.path.join(data_dir, 'gal_base.fits')
         hdulist = pyfits.open(dbfile)
         data = hdulist[1].data
         hdulist.close()
