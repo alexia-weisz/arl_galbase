@@ -39,7 +39,7 @@ def main(**kwargs):
 
             extract_stamp.galex(band='fuv', ra_ctr=this_gal.ra_deg, dec_ctr=this_gal.dec_deg, size_deg=size_deg, name=galname, model_bg=kwargs['model_bg'])
 
-            extract_stamp.galex(band='nuv', ra_ctr=this_gal.ra_deg, dec_ctr=this_gal.dec_deg, size_deg=size_deg, name=galname, model_bg=kwargs['model_bg'])
+            #extract_stamp.galex(band='nuv', ra_ctr=this_gal.ra_deg, dec_ctr=this_gal.dec_deg, size_deg=size_deg, name=galname, model_bg=kwargs['model_bg'])
 
 
     if kwargs['copy']:

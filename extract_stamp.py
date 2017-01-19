@@ -272,8 +272,8 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
     galaxy_mosaic_file = os.path.join(_MOSAIC_DIR, '_'.join([name, band]).upper() + '.FITS')
 
     start_time = time.time()
-    if not os.path.exists(galaxy_mosaic_file):
-    #if name == 'NGC1266':#2976':
+    #if not os.path.exists(galaxy_mosaic_file):
+    if name == 'NGC2976':
         print name
         # READ THE INDEX FILE (IF NOT PASSED IN)
         if index is None:
@@ -609,6 +609,8 @@ def weight_images(im_dir, wt_dir, weight_dir):
         im, hdr = pyfits.getdata(imfile, header=True)
         rrhr, rrhrhdr = pyfits.getdata(wtfile, header=True)
 
+        # noise = 1. / np.sqrt(rrhr)
+        # weight = 1 / noise**2
         wt = rrhr
         newim = im * wt
 
@@ -661,11 +663,6 @@ def counts2jy_galex(counts, cal, pix_as):
 
 def wtpersr(wt, pix_as):
     return wt / (np.radians(pix_as/3600))**2
-
-
-
-
-
 
 
 

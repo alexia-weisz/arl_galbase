@@ -11,65 +11,8 @@ def empty_gal_struct(n):
     ts = config.COL_TYPES
 
     dtype = (zip(columns, ts))
-    empty = np.recarray((n,),
-                        dtype=[('name', object),
-                        ('pgc', int),
-                        ('alias', object),
-                        ('tags', object),
-                        ('dist_mpc', float),
-                        ('e_dist', float),
-                        ('ref_dist', object),
-                        ('vhel_kms', float),
-                        ('e_vhel_kms', float),
-                        ('ref_vhel', object),
-                        ('vrad_kms', float),
-                        ('e_vrad_kms', float),
-                        ('ref_vrad', object),
-                        ('vvir_kms', float),
-                        ('e_vvir_kms', float),
-                        ('ref_vvir', object),
-                        ('ra_deg', float),
-                        ('dec_deg', float),
-                        ('ref_pos', object),
-                        ('posang_deg', float),
-                        ('e_posang', float),
-                        ('ref_posang', object),
-                        ('incl_deg', float),
-                        ('e_incl', float),
-                        ('ref_incl', object),
-                        ('log_raxis', float),
-                        ('e_log_raxis', float),
-                        ('ref_log_raxis', object),
-                        ('t', float),
-                        ('e_t', float),
-                        ('ref_t', object),
-                        ('morph', object),
-                        ('bar', int),
-                        ('ring', int),
-                        ('multiple', int),
-                        ('ref_morph', object),
-                        ('av_sf11', float),
-                        ('r25_deg', float),
-                        ('e_r25_deg', float),
-                        ('ref_r25', object),
-                        ('vmaxg_kms', float),
-                        ('e_vmaxg_kms', float),
-                        ('ref_vmaxg', object),
-                        ('vrot_kms', float),
-                        ('e_vrot_kms', float),
-                        ('ref_vrot', object),
-                        ('hi_msun', float),
-                        ('ref_hi', object),
-                        ('lfir_lsun', float),
-                        ('ref_ir', object),
-                        ('btc_mag', float),
-                        ('ref_btc', object),
-                        ('ubtc_mag', float),
-                        ('ref_ubtc', object),
-                        ('bvtc_mag', float),
-                        ('ref_bvtc', object),
-                        ('itc_mag', float),
-                        ('ref_itc', object)] )
+    #empty = np.recarray((n,), dtype=dtype)
+    empty = pyfits.FITS_rec(n, names=columns, formats=ts)
 
     for i in range(len(empty)):
         for j in range(len(empty[i])):
@@ -82,7 +25,8 @@ def gal_data(name=None, data=None, all=False, data_dir=None, found=None, tag=Non
 
     if not name and not all and not tag:
         print('Need a name to find a galaxy. Returning empty structure')
-        return None
+        #return None
+        return empty_gal_struct(1)
 
 
     if not data_dir:
@@ -131,8 +75,9 @@ def gal_data(name=None, data=None, all=False, data_dir=None, found=None, tag=Non
     # IDENTIFY THE GALAXY
     name = [name]
     n_names = len(name)
-    output = empty_gal_struct(n_names)
+    #output = empty_gal_struct(n_names)
     found = np.ones(n_names)
+    output = []
 
     name = np.asarray([a.replace(' ', '').upper() for a in name])
     name_vec = np.asarray([a.replace(' ', '').upper() for a in name_vec])
@@ -148,8 +93,11 @@ def gal_data(name=None, data=None, all=False, data_dir=None, found=None, tag=Non
             continue
 
         data_ind = np.where(data_name == name_vec[ind][0])[0]
-        output[i] = data[data_ind]
+        #set_trace()
+        #output[i] = data[data_ind]
+        output.append(data[data_ind])
         found[i] = 1
+    output = np.asarray(output)
 
     return output
 
