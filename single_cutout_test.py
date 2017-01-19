@@ -13,6 +13,7 @@ import glob
 #_TOP_DIR = '/data/tycho/0/leroy.42/allsky/'
 #_INDEX_DIR = os.path.join(_TOP_DIR, 'code/')
 _HOME_DIR = '/n/home00/lewis.1590/research/galbase_allsky/'
+_DATA_DIR = '/n/home00/lewis.1590/research/galbase/gal_data/'
 #_MOSAIC_DIR = os.path.join(_HOME_DIR, 'cutouts')
 
 _GAL_DIR = os.path.join(_HOME_DIR, 'ngc2976')
@@ -31,6 +32,7 @@ def get_args():
     return parser.parse_args()
 
 def create_hdr(ra_ctr, dec_ctr, pix_len, pix_scale):
+    set_trace()
     hdr = pyfits.Header()
     hdr['NAXIS'] = 2
     hdr['NAXIS1'] = pix_len
@@ -331,7 +333,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 def main(**kwargs):
 
     if kwargs['cutout']:
-        gals = gal_data.gal_data(tag='SINGS')
+        gals = gal_data.gal_data(tag='SINGS', data_dir=_DATA_DIR)
         n_gals = len(gals)
         size_deg = kwargs['size'] * 60./3600.
 
@@ -340,6 +342,7 @@ def main(**kwargs):
             galname = str(this_gal.name).replace(' ', '').upper()
 
             if galname == 'NGC2976':
+                set_trace()
                 galex(band='fuv', ra_ctr=this_gal.ra_deg, dec_ctr=this_gal.dec_deg, size_deg=size_deg, name=galname)
 
                 #galex(band='nuv', ra_ctr=this_gal.ra_deg, dec_ctr=this_gal.dec_deg, size_deg=size_deg, name=galname)
