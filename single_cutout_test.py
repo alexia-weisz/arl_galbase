@@ -326,7 +326,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
     stop_time = time.time()
     total_time = (stop_time - start_time) / 60.
 
-return
+    return
 
 
 def main(**kwargs):
