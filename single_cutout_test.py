@@ -1,11 +1,10 @@
 import astropy.io.fits as pyfits
 import astropy.wcs as pywcs
-import os
+import os, sys, time
 import numpy as np
 from pdb import set_trace
 import montage_wrapper as montage
 import shutil
-import sys
 import gal_data
 import config
 import glob
