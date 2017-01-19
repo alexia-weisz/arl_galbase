@@ -47,7 +47,6 @@ def create_hdr(ra_ctr, dec_ctr, pix_len, pix_scale):
     hdr['EQUINOX'] = 2000
     return hdr
 
-
 def make_axes(hdr, quiet=False, novec=False, vonly=False, simple=False):
 
     # PULL THE IMAGE/CUBE SIZES FROM THE HEADER
@@ -143,7 +142,6 @@ def make_axes(hdr, quiet=False, novec=False, vonly=False, simple=False):
 
     return rimg, dimg
 
-
 def convert_files(gal_dir, im_dir, wt_dir, band, fuv_toab, nuv_toab, pix_as):
     converted_dir = os.path.join(gal_dir, 'converted')
     os.makedirs(converted_dir)
@@ -172,6 +170,21 @@ def convert_files(gal_dir, im_dir, wt_dir, band, fuv_toab, nuv_toab, pix_as):
             continue
 
     return converted_dir, converted_dir
+
+def counts2jy_galex(counts, cal, pix_as):
+    # first convert to abmag
+    abmag = -2.5 * np.log10(counts) + cal
+
+    # then convert to Jy
+    f_nu = 10**(abmag/-2.5) * 3631.
+
+    # then to MJy
+    f_nu *= 1e-6
+
+    # then to MJy/sr
+    val = f_nu / (np.radians(pix_as/3600))**2
+    return val
+    #val = flux / MJYSR2JYARCSEC / pixel_area / 1e-23 / C * FUV_LAMBDA**2
 
 def write_headerfile(header_file, header):
     f = open(header_file, 'w')
@@ -203,6 +216,35 @@ def mask_images(im_dir, wt_dir, gal_dir):
         mask_galex(image_infile, wt_infile, out_intfile=image_outfile, out_wtfile=wt_outfile)
 
     return int_masked_dir, wt_masked_dir
+
+def mask_galex(intfile, wtfile, outfile=None, chip_rad = 1400, chip_x0=1920, chip_y0=1920, out_intfile=None, out_wtfile=None):
+
+    if out_intfile is None:
+        out_intfile = intfile.replace('.fits', '_masked.fits')
+    if out_wtfile is None:
+        out_wtfile = wtfile.replace('.fits', '_masked.fits')
+
+    if not os.path.exists(out_intfile):
+        data, hdr = pyfits.getdata(intfile, header=True)
+        wt, whdr = pyfits.getdata(wtfile, header=True)
+        #flag, fhdr = pyfits.getdata(flagfile, header=True)
+
+        #factor = float(len(data)) / len(flag)
+        #upflag = zoom(flag, factor, order=0)
+
+        x = np.arange(data.shape[1]).reshape(1, -1) + 1
+        y = np.arange(data.shape[0]).reshape(-1, 1) + 1
+        r = np.sqrt((x - chip_x0)**2 + (y - chip_y0)**2)
+
+        i = (r > chip_rad)
+        j = (data == 0)
+        k = (wt == -1.1e30)
+
+        data = np.where(i | k, 0, data)  #0
+        wt = np.where(i | k, 1e-20, wt) #1e-20
+
+        pyfits.writeto(out_intfile, data, hdr)
+        pyfits.writeto(out_wtfile, wt, whdr)
 
 def reproject_images(template_header, input_dir, reprojected_dir, imtype, whole=False, exact=True, img_list=None):
 
@@ -348,8 +390,9 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
     # GATHER THE INPUT FILES
-    im_dir, wt_dir, nfiles = get_input(index, ind, data_dir, gal_dir)
-
+    #im_dir, wt_dir, nfiles = get_input(index, ind, data_dir, gal_dir)
+    im_dir = _INPUT_DIR
+    wt_dir = _INPUT_DIR
 
     # CONVERT INT FILES TO MJY/SR AND WRITE NEW FILES INTO TEMP DIR
     im_dir, wt_dir = convert_files(gal_dir, im_dir, wt_dir, band, fuv_toab, nuv_toab, pix_as)
@@ -397,26 +440,26 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
     # SUBTRACT OUT THE BACKGROUND
-    remove_background(final_dir, imagefile, bg_reg_file)
+    #remove_background(final_dir, imagefile, bg_reg_file)
 
 
     # COPY MOSAIC FILES TO CUTOUTS DIRECTORY
-    mosaic_file = os.path.join(final_dir, 'final_mosaic.fits')
-    weight_file = os.path.join(final_dir, 'weights_mosaic.fits')
-    count_file = os.path.join(final_dir, 'count_mosaic.fits')
-    newfile = '_'.join([name, band]).upper() + '.FITS'
-    wt_file = '_'.join([name, band]).upper() + '_weight.FITS'
-    ct_file = '_'.join([name, band]).upper() + '_count.FITS'
-    new_mosaic_file = os.path.join(_MOSAIC_DIR, newfile)
-    new_weight_file = os.path.join(_MOSAIC_DIR, wt_file)
-    new_count_file = os.path.join(_MOSAIC_DIR, ct_file)
-    shutil.copy(mosaic_file, new_mosaic_file)
-    shutil.copy(weight_file, new_weight_file)
-    shutil.copy(count_file, new_count_file)
+    # mosaic_file = os.path.join(final_dir, 'final_mosaic.fits')
+    # weight_file = os.path.join(final_dir, 'weights_mosaic.fits')
+    # count_file = os.path.join(final_dir, 'count_mosaic.fits')
+    # newfile = '_'.join([name, band]).upper() + '.FITS'
+    # wt_file = '_'.join([name, band]).upper() + '_weight.FITS'
+    # ct_file = '_'.join([name, band]).upper() + '_count.FITS'
+    # new_mosaic_file = os.path.join(_MOSAIC_DIR, newfile)
+    # new_weight_file = os.path.join(_MOSAIC_DIR, wt_file)
+    # new_count_file = os.path.join(_MOSAIC_DIR, ct_file)
+    # shutil.copy(mosaic_file, new_mosaic_file)
+    # shutil.copy(weight_file, new_weight_file)
+    # shutil.copy(count_file, new_count_file)
 
 
     # REMOVE GALAXY DIRECTORY AND EXTRA FILES
-    shutil.rmtree(gal_dir, ignore_errors=True)
+    #shutil.rmtree(gal_dir, ignore_errors=True)
 
 
     # NOTE TIME TO FINISH
