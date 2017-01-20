@@ -424,7 +424,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
     # CREATE THE METADATA TABLES NEEDED FOR COADDITION
     weight_table = create_table(wt_dir, dir_type='weights')
     weighted_table = create_table(im_dir, dir_type='int')
-    #count_table = create_table(im_dir, dir_type='count')
+    count_table = create_table(im_dir, dir_type='count')
 
 
     # COADD THE REPROJECTED, WEIGHTED IMAGES AND THE WEIGHT IMAGES
@@ -432,7 +432,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
     os.makedirs(final_dir)
     coadd(hdr_file, final_dir, wt_dir, output='weights')
     coadd(hdr_file, final_dir, im_dir, output='int')
-    #coadd(hdr_file, final_dir, im_dir, output='count',add_type='count')
+    coadd(hdr_file, final_dir, im_dir, output='count',add_type='count')
 
 
     # DIVIDE OUT THE WEIGHTS
@@ -444,14 +444,12 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
     # COPY MOSAIC FILES TO CUTOUTS DIRECTORY
-    mosaic_file = os.path.join(final_dir, 'image_mosaic.fits')
-    weight_file = os.path.join(final_dir, 'weights_mosaic.fits')
-    newfile = '_'.join([name, band]).upper() + '.FITS'
-    wt_file = '_'.join([name, band]).upper() + '_weight.FITS'
-    new_mosaic_file = os.path.join(gal_dir, newfile)
-    new_weight_file = os.path.join(gal_dir, wt_file)
-    shutil.copy(mosaic_file, new_mosaic_file)
-    shutil.copy(weight_file, new_weight_file)
+    mos_files = ['image_mosaic.fits','weights_mosaic.fits','count_mosaic.fits']
+    suffixes = ['.FITS', '_weight.FITS', '_count.FITS']
+
+    for f, s in zip(mos_files, suffixes):
+        shutil.copy(os.path.join(final_dir, f),
+                    os.path.join(gal_dir, '_'.join([name, band]).upper() + s))
 
 
     # REMOVE GALAXY DIRECTORY AND EXTRA FILES
@@ -465,6 +463,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
     stop_time = time.time()
     total_time = (stop_time - start_time) / 60.
 
+    print total_time
     return
 
 
