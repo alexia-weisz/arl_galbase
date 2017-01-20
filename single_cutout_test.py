@@ -280,7 +280,7 @@ def weight_images(im_dir, wt_dir, weight_dir):
 
         # noise = 1. / np.sqrt(rrhr)
         # weight = 1 / noise**2
-        wt = rrhr
+        wt = np.sqrt(rrhr)
         newim = im * wt
 
         #nf = imfiles[i].split('/')[-1].replace('.fits', '_weighted.fits')
@@ -424,7 +424,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
     # CREATE THE METADATA TABLES NEEDED FOR COADDITION
     weight_table = create_table(wt_dir, dir_type='weights')
     weighted_table = create_table(im_dir, dir_type='int')
-    count_table = create_table(im_dir, dir_type='count')
+    #count_table = create_table(im_dir, dir_type='count')
 
 
     # COADD THE REPROJECTED, WEIGHTED IMAGES AND THE WEIGHT IMAGES
@@ -432,7 +432,7 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
     os.makedirs(final_dir)
     coadd(hdr_file, final_dir, wt_dir, output='weights')
     coadd(hdr_file, final_dir, im_dir, output='int')
-    coadd(hdr_file, final_dir, im_dir, output='count',add_type='count')
+    #coadd(hdr_file, final_dir, im_dir, output='count',add_type='count')
 
 
     # DIVIDE OUT THE WEIGHTS
@@ -444,23 +444,22 @@ def galex(band='fuv', ra_ctr=None, dec_ctr=None, size_deg=None, index=None, name
 
 
     # COPY MOSAIC FILES TO CUTOUTS DIRECTORY
-    # mosaic_file = os.path.join(final_dir, 'final_mosaic.fits')
-    # weight_file = os.path.join(final_dir, 'weights_mosaic.fits')
-    # count_file = os.path.join(final_dir, 'count_mosaic.fits')
-    # newfile = '_'.join([name, band]).upper() + '.FITS'
-    # wt_file = '_'.join([name, band]).upper() + '_weight.FITS'
-    # ct_file = '_'.join([name, band]).upper() + '_count.FITS'
-    # new_mosaic_file = os.path.join(_MOSAIC_DIR, newfile)
-    # new_weight_file = os.path.join(_MOSAIC_DIR, wt_file)
-    # new_count_file = os.path.join(_MOSAIC_DIR, ct_file)
-    # shutil.copy(mosaic_file, new_mosaic_file)
-    # shutil.copy(weight_file, new_weight_file)
-    # shutil.copy(count_file, new_count_file)
+    mosaic_file = os.path.join(final_dir, 'image_mosaic.fits')
+    weight_file = os.path.join(final_dir, 'weights_mosaic.fits')
+    newfile = '_'.join([name, band]).upper() + '.FITS'
+    wt_file = '_'.join([name, band]).upper() + '_weight.FITS'
+    new_mosaic_file = os.path.join(gal_dir, newfile)
+    new_weight_file = os.path.join(gal_dir, wt_file)
+    shutil.copy(mosaic_file, new_mosaic_file)
+    shutil.copy(weight_file, new_weight_file)
 
 
     # REMOVE GALAXY DIRECTORY AND EXTRA FILES
     #shutil.rmtree(gal_dir, ignore_errors=True)
+    fdirs = [final_dir, weight_dir, reprojected_dir, os.path.join(gal_dir, 'converted'), os.path.join(gal_dir, 'masked')]
 
+    for fdir in fdirs:
+        shutil.rmtree(fdir, ignore_errors=True)
 
     # NOTE TIME TO FINISH
     stop_time = time.time()
