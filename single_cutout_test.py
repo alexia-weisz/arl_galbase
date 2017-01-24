@@ -157,12 +157,12 @@ def convert_files(gal_dir, im_dir, wt_dir, band, fuv_toab, nuv_toab, pix_as):
             im, hdr = pyfits.getdata(intfiles[i], header=True)
             wt, whdr = pyfits.getdata(wtfiles[i], header=True)
             #wt = wtpersr(wt, pix_as)
-            if band.lower() == 'fuv':
-                im = counts2jy_galex(im, fuv_toab, pix_as)
+            #if band.lower() == 'fuv':
+            #    im = counts2jy_galex(im, fuv_toab, pix_as)
             if band.lower() == 'nuv':
                 im = counts2jy_galex(im, nuv_toab, pix_as)
             if not os.path.exists(int_outfiles[i]):
-                im -= np.mean(im)
+            #    im -= np.mean(im)
                 pyfits.writeto(int_outfiles[i], im, hdr)
             if not os.path.exists(wt_outfiles[i]):
                 pyfits.writeto(wt_outfiles[i], wt, whdr)
