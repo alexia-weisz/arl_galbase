@@ -24,7 +24,7 @@ _MOSAIC_DIR = os.path.join(_GAL_DIR, 'mosaics')
 def get_args():
     import argparse
     parser = argparse.ArgumentParser(description='Create cutouts of a given size around each galaxy center.')
-    parser.add_argument('--size', default=30, help='cutout size in arcminutes')
+    parser.add_argument('--size', default=30.,help='cutout size in arcminutes')
     parser.add_argument('--cutout', action='store_true')
     parser.add_argument('--copy', action='store_true')
     parser.add_argument('--convolve', action='store_true')
@@ -280,7 +280,7 @@ def weight_images(im_dir, wt_dir, weight_dir):
 
         # noise = 1. / np.sqrt(rrhr)
         # weight = 1 / noise**2
-        wt = np.sqrt(rrhr)
+        wt = rrhr
         newim = im * wt
 
         #nf = imfiles[i].split('/')[-1].replace('.fits', '_weighted.fits')
@@ -472,13 +472,14 @@ def main(**kwargs):
     if kwargs['cutout']:
         gals = gal_data.gal_data(tag='SINGS', data_dir=_DATA_DIR)
         n_gals = len(gals)
-        size_deg = kwargs['size'] * 60./3600.
+        size_deg = kwargs['size'] * 60. / 3600.
 
         for i in range(n_gals):
             this_gal = np.rec.fromarrays(gals[i], names=list(config.COLUMNS))
             galname = str(this_gal.name).replace(' ', '').upper()
 
             if galname == 'NGC2976':
+                set_trace()
                 galex(band='fuv', ra_ctr=this_gal.ra_deg, dec_ctr=this_gal.dec_deg, size_deg=size_deg, name=galname)
 
                 #galex(band='nuv', ra_ctr=this_gal.ra_deg, dec_ctr=this_gal.dec_deg, size_deg=size_deg, name=galname)
